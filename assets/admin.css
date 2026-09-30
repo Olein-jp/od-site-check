@@ -58,6 +58,17 @@
 	font-size: 1.4em;
 }
 
+.odsc-summary-time dd {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 24px;
+	font-size: 1em;
+}
+
+.odsc-summary-time dd span {
+	display: inline-block;
+}
+
 .odsc-results-list {
 	margin: 16px 0 0;
 	border-top: 1px solid #dcdcde;
@@ -65,7 +76,7 @@
 
 .odsc-card .odsc-results-list li {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
 	margin: 0;
@@ -75,7 +86,22 @@
 }
 
 .odsc-result-name {
+	display: block;
 	font-weight: 600;
+}
+
+.odsc-result-detail {
+	display: block;
+	min-width: 0;
+}
+
+.odsc-result-note {
+	display: block;
+	max-width: 650px;
+	margin-top: 5px;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 1.5;
 }
 
 .odsc-result-name code {
@@ -90,6 +116,7 @@
 	flex: 0 0 auto;
 	gap: 5px;
 	font-weight: 600;
+	margin-top: 1px;
 }
 
 .odsc-status--collected {
@@ -113,24 +140,29 @@
 	color: #b32d2e;
 }
 
-.odsc-manual-fields {
+.odsc-interview-list {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 18px;
-	margin: 20px 0 28px;
+	margin: 20px 0 0;
 }
 
-.odsc-manual-fields label,
-.odsc-manual-fields label > span {
-	display: block;
+.odsc-card .odsc-interview-list li {
+	margin: 0;
+	padding: 18px;
+	border: 1px solid #dcdcde;
+	background: #f6f7f7;
+	list-style: none;
 }
 
-.odsc-manual-fields label > span {
-	margin-bottom: 6px;
-	font-weight: 600;
+.odsc-interview-list h3 {
+	margin: 0 0 10px;
 }
 
-.odsc-manual-fields textarea,
+.odsc-interview-list p {
+	margin: 6px 0 0;
+}
+
 .odsc-json-preview {
 	width: 100%;
 }
@@ -160,7 +192,7 @@
 		padding: 18px;
 	}
 
-	.odsc-manual-fields {
+	.odsc-interview-list {
 		grid-template-columns: 1fr;
 	}
 }

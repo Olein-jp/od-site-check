@@ -78,7 +78,7 @@ final class ODSC_Collector_Plugins {
 				'dropin_identifiers'      => array_keys( $dropins ),
 				'source_code_scanned'     => false,
 			),
-			__( '独自開発かどうかの断定やソースコード監査は行っていません。', 'od-site-check' )
+			__( '子テーマ、MUプラグイン、ドロップインの有無だけを確認しています。コードの内容確認や、独自開発かどうかの断定はしていません。', 'od-site-check' )
 		);
 	}
 
@@ -128,7 +128,7 @@ final class ODSC_Collector_Plugins {
 			'partial',
 			'wordpress_plugin_api',
 			array( 'detected_plugins' => $this->detect_known_plugins( $known ) ),
-			__( 'プラグインの存在だけを確認しています。バックアップの設定・実行・復元可能性は確認していません。', 'od-site-check' )
+			__( 'バックアップ関連プラグインの有無だけを確認しています。設定内容、実行履歴、復元できるかどうかは確認していません。', 'od-site-check' )
 		);
 	}
 

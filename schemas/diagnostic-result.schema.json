@@ -60,14 +60,6 @@
         "active": { "type": "boolean" }
       }
     },
-	"manualInput": {
-	  "type": "object",
-	  "additionalProperties": false,
-	  "required": ["response"],
-	  "properties": {
-		"response": { "type": "string", "minLength": 1, "maxLength": 2000 }
-	  }
-	},
     "result": {
       "type": "object",
       "additionalProperties": false,
@@ -89,31 +81,18 @@
           "if": { "properties": { "status": { "enum": ["manual_required", "unavailable", "unsupported", "error"] } } },
           "then": { "properties": { "value": { "type": "null" } } }
         },
-		{
-		  "if": { "properties": { "id": { "enum": ["OPS-01", "OPS-10", "OPS-12", "OPS-14", "OPS-18", "OPS-19"] } }, "required": ["id"] },
-		  "then": {
-			"oneOf": [
-			  {
-				"properties": {
-				  "status": { "const": "manual_required" },
-				  "source": { "type": "null" },
-				  "value": { "type": "null" },
-				  "note": { "type": "string", "minLength": 1 },
-				  "error_code": { "type": "null" }
-				}
-			  },
-			  {
-				"properties": {
-				  "status": { "const": "collected" },
-				  "source": { "const": "manual_input" },
-				  "value": { "$ref": "#/definitions/manualInput" },
-				  "note": { "type": "string", "minLength": 1 },
-				  "error_code": { "type": "null" }
-				}
-			  }
-			]
-		  }
-		},
+        {
+          "if": { "properties": { "id": { "enum": ["OPS-01", "OPS-10", "OPS-12", "OPS-14", "OPS-18", "OPS-19"] } }, "required": ["id"] },
+          "then": {
+            "properties": {
+              "status": { "const": "manual_required" },
+              "source": { "type": "null" },
+              "value": { "type": "null" },
+              "note": { "type": "string", "minLength": 1 },
+              "error_code": { "type": "null" }
+            }
+          }
+        },
         {
           "if": { "properties": { "id": { "const": "WP-01" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
           "then": { "properties": { "value": { "$ref": "#/definitions/wp01" } } }
@@ -188,12 +167,52 @@
     },
     "wp03": {
       "type": "object", "additionalProperties": false,
-      "required": ["environment_type", "wp_debug", "wp_debug_display", "wp_debug_log"],
+      "required": ["environment_type", "wp_debug", "wp_debug_display", "wp_debug_log", "tests_attempted", "tests_completed", "status_counts", "tests", "failed_tests"],
       "properties": {
         "environment_type": { "type": "string" },
         "wp_debug": { "type": "boolean" },
         "wp_debug_display": { "type": "boolean" },
-        "wp_debug_log": { "type": "boolean" }
+        "wp_debug_log": { "type": "boolean" },
+        "tests_attempted": { "const": 11 },
+        "tests_completed": { "type": "integer", "minimum": 0, "maximum": 11 },
+        "status_counts": {
+          "type": "object", "additionalProperties": false,
+          "required": ["good", "recommended", "critical"],
+          "properties": {
+            "good": { "type": "integer", "minimum": 0 },
+            "recommended": { "type": "integer", "minimum": 0 },
+            "critical": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "tests": {
+          "type": "array", "maxItems": 11,
+          "items": { "$ref": "#/definitions/siteHealthTest" }
+        },
+        "failed_tests": {
+          "type": "array", "maxItems": 11,
+          "items": { "$ref": "#/definitions/siteHealthFailure" }
+        }
+      }
+    },
+    "siteHealthTestId": {
+      "enum": ["php_extensions", "php_default_timezone", "php_sessions", "sql_server", "ssl_support", "http_requests", "debug_enabled", "file_uploads", "insecure_registration", "search_engine_visibility", "opcode_cache"]
+    },
+    "siteHealthTest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "status", "label", "category"],
+      "properties": {
+        "id": { "$ref": "#/definitions/siteHealthTestId" },
+        "status": { "enum": ["good", "recommended", "critical"] },
+        "label": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 }
+      }
+    },
+    "siteHealthFailure": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "error_code"],
+      "properties": {
+        "id": { "$ref": "#/definitions/siteHealthTestId" },
+        "error_code": { "const": "test_failed" }
       }
     },
     "wp04": {

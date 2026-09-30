@@ -14,36 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class ODSC_Exporter {
 	/**
-	 * Applies allowlisted manual answers to a collected payload.
-	 *
-	 * @param array<string, mixed>  $payload Diagnostic payload.
-	 * @param array<string, string> $inputs  Manual answers keyed by item ID.
-	 * @return array<string, mixed>
-	 */
-	public function apply_manual_inputs( $payload, $inputs ) {
-		$manual_ids = ODSC_Collector::manual_ids();
-
-		foreach ( $payload['results'] as &$result ) {
-			if ( ! in_array( $result['id'], $manual_ids, true ) ) {
-				continue;
-			}
-
-			$answer = isset( $inputs[ $result['id'] ] ) ? trim( $inputs[ $result['id'] ] ) : '';
-			if ( '' === $answer ) {
-				continue;
-			}
-
-			$result['status']     = 'collected';
-			$result['source']     = 'manual_input';
-			$result['value']      = array( 'response' => $answer );
-			$result['note']       = __( '管理画面で手動入力されました。', 'od-site-check' );
-			$result['error_code'] = null;
-		}
-		unset( $result );
-
-		return $payload;
-	}
-	/**
 	 * Encodes a diagnostic payload.
 	 *
 	 * @param array<string, mixed> $payload Diagnostic payload.

@@ -19,6 +19,7 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		remove_all_filters( 'odsc_collectors' );
 		remove_all_filters( 'odsc_is_multisite' );
+		remove_all_filters( 'odsc_site_health_test_result' );
 		wp_set_current_user( 0 );
 		$_POST    = array();
 		$_REQUEST = array();
@@ -49,48 +50,6 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	 */
 	public function test_payload_matches_json_schema() {
 		$payload   = ( new ODSC_Collector() )->collect();
-		$schema    = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
-		$data      = json_decode( wp_json_encode( $payload ) );
-		$validator = new Validator();
-		$result    = $validator->validate( $data, $schema );
-
-		$this->assertTrue( $result->isValid() );
-	}
-
-	/**
-	 * Ensures manual answers are allowlisted and converted into collected records.
-	 *
-	 * @return void
-	 */
-	public function test_manual_answers_are_applied_to_allowlisted_items() {
-		$exporter = new ODSC_Exporter();
-		$payload  = $exporter->apply_manual_inputs(
-			( new ODSC_Collector() )->collect(),
-			array(
-				'OPS-01' => 'レンタルサーバーの年間契約',
-				'OPS-10' => '  ',
-				'WP-01'  => '変更されない値',
-			)
-		);
-		$results  = array_combine( wp_list_pluck( $payload['results'], 'id' ), $payload['results'] );
-
-		$this->assertSame( 'collected', $results['OPS-01']['status'] );
-		$this->assertSame( 'manual_input', $results['OPS-01']['source'] );
-		$this->assertSame( array( 'response' => 'レンタルサーバーの年間契約' ), $results['OPS-01']['value'] );
-		$this->assertSame( 'manual_required', $results['OPS-10']['status'] );
-		$this->assertNotSame( 'manual_input', $results['WP-01']['source'] );
-	}
-
-	/**
-	 * Ensures a payload containing manual answers still matches the JSON Schema.
-	 *
-	 * @return void
-	 */
-	public function test_payload_with_manual_answers_matches_json_schema() {
-		$payload   = ( new ODSC_Exporter() )->apply_manual_inputs(
-			( new ODSC_Collector() )->collect(),
-			array( 'OPS-19' => '平日日中は保守担当者が一次対応する。' )
-		);
 		$schema    = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
 		$data      = json_decode( wp_json_encode( $payload ) );
 		$validator = new Validator();
@@ -146,6 +105,82 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		$this->assertSame( 'collector_failed', $results['WP-01']['error_code'] );
 		$this->assertStringNotContainsString( 'Sensitive internal detail', wp_json_encode( $results['WP-01'] ) );
 		$this->assertNotSame( 'error', $results['WP-02']['status'] );
+	}
+
+	/**
+	 * Ensures WP-03 exposes only the fixed safe Site Health result fields.
+	 *
+	 * @return void
+	 */
+	public function test_site_health_uses_the_fixed_safe_allowlist() {
+		$cron_before  = _get_cron_array();
+		$result       = ( new ODSC_Collector_WordPress() )->collect_site_health();
+		$value        = $result['value'];
+		$expected_ids = array(
+			'php_extensions',
+			'php_default_timezone',
+			'php_sessions',
+			'sql_server',
+			'ssl_support',
+			'http_requests',
+			'debug_enabled',
+			'file_uploads',
+			'insecure_registration',
+			'search_engine_visibility',
+			'opcode_cache',
+		);
+
+		$this->assertSame( 'collected', $result['status'] );
+		$this->assertSame( 'wordpress_site_health_allowlist', $result['source'] );
+		$this->assertSame( 11, $value['tests_attempted'] );
+		$this->assertSame( 11, $value['tests_completed'] );
+		$this->assertSame( $expected_ids, wp_list_pluck( $value['tests'], 'id' ) );
+		$this->assertSame( 11, array_sum( $value['status_counts'] ) );
+		$this->assertSame( array(), $value['failed_tests'] );
+		$this->assertSame( $cron_before, _get_cron_array() );
+
+		foreach ( $value['tests'] as $test ) {
+			$this->assertSame( array( 'id', 'status', 'label', 'category' ), array_keys( $test ) );
+			$this->assertSame( wp_strip_all_tags( $test['label'] ), $test['label'] );
+		}
+	}
+
+	/**
+	 * Ensures one Site Health test failure is isolated and safely summarized.
+	 *
+	 * @return void
+	 */
+	public function test_site_health_test_failure_is_isolated() {
+		add_filter(
+			'odsc_site_health_test_result',
+			static function ( $result, $id ) {
+				if ( 'php_sessions' === $id ) {
+					throw new RuntimeException( 'Sensitive Site Health detail.' );
+				}
+
+				return $result;
+			},
+			10,
+			2
+		);
+
+		$result = ( new ODSC_Collector_WordPress() )->collect_site_health();
+
+		$this->assertSame( 'partial', $result['status'] );
+		$this->assertSame( 11, $result['value']['tests_attempted'] );
+		$this->assertSame( 10, $result['value']['tests_completed'] );
+		$this->assertSame(
+			array(
+				array(
+					'id'         => 'php_sessions',
+					'error_code' => 'test_failed',
+				),
+			),
+			$result['value']['failed_tests']
+		);
+		$this->assertStringNotContainsString( 'Sensitive Site Health detail.', wp_json_encode( $result ) );
+		$this->assertStringContainsString( 'php_sessions', $result['note'] );
+		$this->assertContains( 'sql_server', wp_list_pluck( $result['value']['tests'], 'id' ) );
 	}
 
 	/**
