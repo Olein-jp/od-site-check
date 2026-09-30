@@ -46,14 +46,15 @@
         { "type": "null" }
       ]
     },
-    "pluginSummary": {
+    "inactivePluginSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "identifier", "version", "update_available", "new_version"],
+      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version"],
       "properties": {
         "name": { "type": "string" },
         "identifier": { "type": "string" },
         "version": { "type": "string" },
+        "activation_state": { "const": "inactive" },
         "update_available": { "type": "boolean" },
         "new_version": { "$ref": "#/definitions/nullableString" }
       }
@@ -61,11 +62,12 @@
     "activePluginSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "identifier", "version", "update_available", "new_version"],
+      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version"],
       "properties": {
         "name": { "type": "string" },
         "identifier": { "type": "string" },
         "version": { "type": "string" },
+        "activation_state": { "const": "active" },
         "update_available": { "$ref": "#/definitions/nullableBoolean" },
         "new_version": { "$ref": "#/definitions/nullableString" }
       }
@@ -280,7 +282,14 @@
           "else": {
             "properties": {
               "update_cache_checked_at": { "type": "string", "format": "date-time" },
-              "plugins": { "items": { "$ref": "#/definitions/pluginSummary" } }
+              "plugins": {
+                "items": {
+                  "allOf": [
+                    { "$ref": "#/definitions/activePluginSummary" },
+                    { "properties": { "update_available": { "type": "boolean" } } }
+                  ]
+                }
+              }
             }
           }
         }
@@ -288,7 +297,7 @@
     },
     "pluginList": {
       "type": "object", "additionalProperties": false, "required": ["count", "plugins"],
-      "properties": { "count": { "type": "integer", "minimum": 0 }, "plugins": { "type": "array", "items": { "$ref": "#/definitions/pluginSummary" } } }
+      "properties": { "count": { "type": "integer", "minimum": 0 }, "plugins": { "type": "array", "items": { "$ref": "#/definitions/inactivePluginSummary" } } }
     },
     "wp09": {
       "type": "object", "additionalProperties": false,

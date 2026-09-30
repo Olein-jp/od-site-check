@@ -35,7 +35,7 @@ final class ODSC_Collector_Plugins {
 				'count'                   => count( $active ),
 				'update_cache_available'  => $cache_available,
 				'update_cache_checked_at' => $cache_available ? wp_date( DATE_RFC3339, (int) $updates->last_checked ) : null,
-				'plugins'                 => $this->format_plugins( array_intersect_key( $all_plugins, $active ), true, $updates, $cache_available ),
+				'plugins'                 => $this->format_plugins( array_intersect_key( $all_plugins, $active ), 'active', true, $updates, $cache_available ),
 			),
 			$note
 		);
@@ -57,7 +57,7 @@ final class ODSC_Collector_Plugins {
 			'wordpress_plugin_api',
 			array(
 				'count'   => count( $inactive ),
-				'plugins' => $this->format_plugins( $inactive, false ),
+				'plugins' => $this->format_plugins( $inactive, 'inactive', false ),
 			)
 		);
 	}
@@ -181,13 +181,14 @@ final class ODSC_Collector_Plugins {
 	/**
 	 * Formats plugin data using an explicit output allow list.
 	 *
-	 * @param array<string, array<string, string>> $plugins        Plugin data keyed by file.
-	 * @param bool                                 $include_update Whether to include cached update details.
-	 * @param object|null                          $updates         Cached update data.
+	 * @param array<string, array<string, string>> $plugins         Plugin data keyed by file.
+	 * @param string                               $activation_state Plugin activation state.
+	 * @param bool                                 $include_update  Whether to include cached update details.
+	 * @param object|null                          $updates          Cached update data.
 	 * @param bool                                 $cache_available Whether the update cache is usable.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function format_plugins( $plugins, $include_update = true, $updates = null, $cache_available = false ) {
+	private function format_plugins( $plugins, $activation_state, $include_update = true, $updates = null, $cache_available = false ) {
 		$output = array();
 
 		foreach ( $plugins as $file => $data ) {
@@ -197,6 +198,7 @@ final class ODSC_Collector_Plugins {
 				'name'             => isset( $data['Name'] ) ? $data['Name'] : '',
 				'identifier'       => $file,
 				'version'          => isset( $data['Version'] ) ? $data['Version'] : '',
+				'activation_state' => $activation_state,
 				'update_available' => $include_update && ! $cache_available ? null : null !== $update,
 				'new_version'      => is_object( $update ) && isset( $update->new_version ) ? (string) $update->new_version : null,
 			);

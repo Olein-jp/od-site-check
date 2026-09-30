@@ -215,6 +215,38 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensures plugin lists expose their activation state without relying on result IDs.
+	 *
+	 * @return void
+	 */
+	public function test_plugin_lists_expose_activation_state() {
+		$active_plugins = get_option( 'active_plugins', array() );
+		$plugin_file    = 'od-site-check/od-site-check.php';
+
+		try {
+			update_option( 'active_plugins', array( $plugin_file ) );
+			$active_result = ( new ODSC_Collector_Plugins() )->collect_active_plugins();
+
+			$this->assertSame( count( $active_result['value']['plugins'] ), $active_result['value']['count'] );
+			$this->assertNotEmpty( $active_result['value']['plugins'] );
+			foreach ( $active_result['value']['plugins'] as $plugin ) {
+				$this->assertSame( 'active', $plugin['activation_state'] );
+			}
+
+			update_option( 'active_plugins', array() );
+			$inactive_result = ( new ODSC_Collector_Plugins() )->collect_inactive_plugins();
+
+			$this->assertSame( count( $inactive_result['value']['plugins'] ), $inactive_result['value']['count'] );
+			$this->assertNotEmpty( $inactive_result['value']['plugins'] );
+			foreach ( $inactive_result['value']['plugins'] as $plugin ) {
+				$this->assertSame( 'inactive', $plugin['activation_state'] );
+			}
+		} finally {
+			update_option( 'active_plugins', $active_plugins );
+		}
+	}
+
+	/**
 	 * Ensures WP-03 exposes only the fixed safe Site Health result fields.
 	 *
 	 * @return void
