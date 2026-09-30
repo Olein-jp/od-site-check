@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<ruleset name="OD Site Check">
+	<description>PHP coding standards for the OD Site Check plugin.</description>
+
+	<file>.</file>
+
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/build/*</exclude-pattern>
+
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+	<arg name="extensions" value="php"/>
+
+	<rule ref="WordPress">
+		<!-- Keep the concise class filenames defined by the product specification. -->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="odsc"/>
+				<element value="ODSC"/>
+				<element value="od_site_check"/>
+				<element value="ODSiteCheck"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="od-site-check"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="PHPCompatibilityWP">
+		<properties>
+			<property name="testVersion" value="7.4-"/>
+		</properties>
+	</rule>
+</ruleset>

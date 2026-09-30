@@ -1,0 +1,28 @@
+{
+  "name": "olein/od-site-check",
+  "description": "Site-checking plugin for WordPress.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+    "opis/json-schema": "^2.6",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^9.6",
+    "wp-coding-standards/wpcs": "^3.4",
+    "yoast/phpunit-polyfills": "^2.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint": "@php -d error_reporting=24575 vendor/bin/phpcs",
+    "format": "@php -d error_reporting=24575 vendor/bin/phpcbf",
+    "test": "phpunit"
+  }
+}

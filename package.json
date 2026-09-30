@@ -1,0 +1,24 @@
+{
+  "name": "od-site-check",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development tooling for the OD Site Check WordPress plugin.",
+  "engines": {
+    "node": ">=18.12.0"
+  },
+  "scripts": {
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:status": "wp-env status",
+    "env:logs": "wp-env logs",
+    "env:cli": "wp-env run cli wp",
+    "test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/od-site-check vendor/bin/phpunit",
+    "build:zip": "sh bin/build-zip.sh"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^11.16.0"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
+  }
+}

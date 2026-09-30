@@ -1,0 +1,255 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.0.json",
+  "title": "OD Site Check diagnostic result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "collector", "collected_at", "site", "results"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "OD Site Check" },
+        "version": { "type": "string" }
+      }
+    },
+    "collected_at": { "type": "string", "format": "date-time" },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "multisite"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "multisite": { "type": "boolean" }
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 22,
+      "maxItems": 22,
+      "items": { "$ref": "#/definitions/result" }
+    }
+  },
+  "definitions": {
+    "nullableString": {
+      "type": ["string", "null"]
+    },
+    "pluginSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "identifier", "version", "update_available", "new_version"],
+      "properties": {
+        "name": { "type": "string" },
+        "identifier": { "type": "string" },
+        "version": { "type": "string" },
+        "update_available": { "type": "boolean" },
+        "new_version": { "$ref": "#/definitions/nullableString" }
+      }
+    },
+    "detectedPlugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identifier", "name", "version", "active"],
+      "properties": {
+        "identifier": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "source", "value", "note", "error_code"],
+      "properties": {
+        "id": {
+          "enum": ["WP-01", "WP-02", "WP-03", "WP-04", "WP-07", "WP-08", "WP-09", "WP-10", "WP-11", "WP-12", "WP-13", "WP-15", "OPS-01", "OPS-03", "OPS-04", "OPS-05", "OPS-10", "OPS-11", "OPS-12", "OPS-14", "OPS-18", "OPS-19"]
+        },
+        "status": {
+          "enum": ["collected", "partial", "manual_required", "unavailable", "unsupported", "error"]
+        },
+        "source": { "type": ["string", "null"] },
+        "value": { "type": ["object", "null"] },
+        "note": { "$ref": "#/definitions/nullableString" },
+        "error_code": { "$ref": "#/definitions/nullableString" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "enum": ["manual_required", "unavailable", "unsupported", "error"] } } },
+          "then": { "properties": { "value": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "id": { "enum": ["OPS-01", "OPS-10", "OPS-12", "OPS-14", "OPS-18", "OPS-19"] } } },
+          "then": {
+            "properties": {
+              "status": { "const": "manual_required" },
+              "source": { "type": "null" },
+              "value": { "type": "null" },
+              "note": { "type": "string", "minLength": 1 },
+              "error_code": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-01" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp01" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-02" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp02" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-03" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp03" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-04" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp04" } } }
+        },
+        {
+          "if": { "properties": { "id": { "enum": ["WP-07", "WP-08"] }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/pluginList" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-09" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp09" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-10" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp10" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-11" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp11" } } }
+        },
+        {
+          "if": { "properties": { "id": { "enum": ["WP-12", "OPS-11"] }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/detectedPluginList" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-13" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp13" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-15" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp15" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "OPS-03" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/ops03" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "OPS-04" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/ops04" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "OPS-05" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/ops05" } } }
+        }
+      ]
+    },
+    "wp01": {
+      "type": "object", "additionalProperties": false, "required": ["version"],
+      "properties": { "version": { "type": "string" } }
+    },
+    "wp02": {
+      "type": "object", "additionalProperties": false,
+      "required": ["core_auto_update", "file_modifications_off", "cached_update_checked", "cached_update_checked_at"],
+      "properties": {
+        "core_auto_update": { "enum": ["wordpress_default", "disabled", "all", "minor", "custom"] },
+        "file_modifications_off": { "type": "boolean" },
+        "cached_update_checked": { "type": "boolean" },
+        "cached_update_checked_at": { "$ref": "#/definitions/nullableString" }
+      }
+    },
+    "wp03": {
+      "type": "object", "additionalProperties": false,
+      "required": ["environment_type", "wp_debug", "wp_debug_display", "wp_debug_log"],
+      "properties": {
+        "environment_type": { "type": "string" },
+        "wp_debug": { "type": "boolean" },
+        "wp_debug_display": { "type": "boolean" },
+        "wp_debug_log": { "type": "boolean" }
+      }
+    },
+    "wp04": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "stylesheet", "version", "is_child_theme", "parent_name", "parent_version", "update_available", "new_version"],
+      "properties": {
+        "name": { "type": "string" }, "stylesheet": { "type": "string" }, "version": { "type": "string" },
+        "is_child_theme": { "type": "boolean" }, "parent_name": { "$ref": "#/definitions/nullableString" },
+        "parent_version": { "$ref": "#/definitions/nullableString" }, "update_available": { "type": "boolean" },
+        "new_version": { "$ref": "#/definitions/nullableString" }
+      }
+    },
+    "pluginList": {
+      "type": "object", "additionalProperties": false, "required": ["count", "plugins"],
+      "properties": { "count": { "type": "integer", "minimum": 0 }, "plugins": { "type": "array", "items": { "$ref": "#/definitions/pluginSummary" } } }
+    },
+    "wp09": {
+      "type": "object", "additionalProperties": false,
+      "required": ["active_theme_stylesheet", "active_theme_is_child", "mu_plugin_count", "mu_plugin_identifiers", "dropin_count", "dropin_identifiers", "source_code_scanned"],
+      "properties": {
+        "active_theme_stylesheet": { "type": "string" }, "active_theme_is_child": { "type": "boolean" },
+        "mu_plugin_count": { "type": "integer", "minimum": 0 }, "mu_plugin_identifiers": { "type": "array", "items": { "type": "string" } },
+        "dropin_count": { "type": "integer", "minimum": 0 }, "dropin_identifiers": { "type": "array", "items": { "type": "string" } },
+        "source_code_scanned": { "const": false }
+      }
+    },
+    "wp10": {
+      "type": "object", "additionalProperties": false,
+      "required": ["core_updates_pending", "plugin_updates_pending", "theme_updates_pending", "cache_complete"],
+      "properties": {
+        "core_updates_pending": { "type": "integer", "minimum": 0 },
+        "plugin_updates_pending": { "type": ["integer", "null"], "minimum": 0 },
+        "theme_updates_pending": { "type": ["integer", "null"], "minimum": 0 },
+        "cache_complete": { "type": "boolean" }
+      }
+    },
+    "wp11": {
+      "type": "object", "additionalProperties": false, "required": ["total_users", "role_counts"],
+      "properties": { "total_users": { "type": "integer", "minimum": 0 }, "role_counts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } } }
+    },
+    "detectedPluginList": {
+      "type": "object", "additionalProperties": false, "required": ["detected_plugins"],
+      "properties": { "detected_plugins": { "type": "array", "items": { "$ref": "#/definitions/detectedPlugin" } } }
+    },
+    "wp13": {
+      "type": "object", "additionalProperties": false,
+      "required": ["home_url", "site_url", "timezone_string", "gmt_offset", "locale", "permalink_structure"],
+      "properties": {
+        "home_url": { "type": "string", "format": "uri" }, "site_url": { "type": "string", "format": "uri" },
+        "timezone_string": { "type": "string" }, "gmt_offset": { "type": "number" }, "locale": { "type": "string" },
+        "permalink_structure": { "type": "string" }
+      }
+    },
+    "wp15": {
+      "type": "object", "additionalProperties": false,
+      "required": ["show_on_front", "front_page_configured", "posts_page_configured", "search_engine_visible"],
+      "properties": {
+        "show_on_front": { "enum": ["posts", "page"] }, "front_page_configured": { "type": "boolean" },
+        "posts_page_configured": { "type": "boolean" }, "search_engine_visible": { "type": "boolean" }
+      }
+    },
+    "ops03": {
+      "type": "object", "additionalProperties": false, "required": ["version", "sapi"],
+      "properties": { "version": { "type": "string" }, "sapi": { "type": "string" } }
+    },
+    "ops04": {
+      "type": "object", "additionalProperties": false, "required": ["type", "version"],
+      "properties": { "type": { "enum": ["MySQL", "MariaDB"] }, "version": { "type": "string" } }
+    },
+    "ops05": {
+      "type": "object", "additionalProperties": false,
+      "required": ["php_memory_limit", "wp_memory_limit", "wp_max_memory_limit", "max_execution_time", "upload_max_filesize", "post_max_size", "server_disk_checked"],
+      "properties": {
+        "php_memory_limit": { "type": "string" }, "wp_memory_limit": { "$ref": "#/definitions/nullableString" },
+        "wp_max_memory_limit": { "$ref": "#/definitions/nullableString" }, "max_execution_time": { "type": "integer" },
+        "upload_max_filesize": { "type": "string" }, "post_max_size": { "type": "string" }, "server_disk_checked": { "const": false }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+/.git
+/.gitignore
+/.editorconfig
+/.wp-env.json
+/.wp-env.override.json
+/.distignore
+/bin
+/build
+/composer.json
+/composer.lock
+/node_modules
+/package.json
+/package-lock.json
+/phpcs.xml.dist
+/phpunit.xml.dist
+/tests
+/vendor
