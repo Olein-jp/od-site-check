@@ -16,9 +16,14 @@ trap cleanup EXIT HUP INT TERM
 
 mkdir -p "$plugin_dir" "$project_root/build"
 
-for item in od-site-check.php includes assets schemas uninstall.php readme.txt README.md; do
-	cp -R "$project_root/$item" "$plugin_dir/$item"
-done
+while IFS= read -r item; do
+	case "$item" in
+		''|'#'*) continue ;;
+	esac
+
+	mkdir -p "$plugin_dir/$(dirname -- "$item")"
+	cp "$project_root/$item" "$plugin_dir/$item"
+done < "$project_root/bin/package-files.txt"
 
 (
 	cd "$staging"

@@ -13,7 +13,10 @@
     "env:logs": "wp-env logs",
     "env:cli": "wp-env run cli wp",
     "test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/od-site-check vendor/bin/phpunit",
-    "build:zip": "sh bin/build-zip.sh"
+    "test:compat": "sh bin/test-compatibility.sh",
+    "test:smoke": "sh bin/test-zip-smoke.sh",
+    "build:zip": "sh bin/build-zip.sh",
+    "verify:zip": "sh bin/verify-zip.sh"
   },
   "devDependencies": {
     "@wordpress/env": "^11.16.0"

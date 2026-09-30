@@ -33,7 +33,12 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 
 ## 開発環境
 
-Docker、Node.js 18.12以上、npm、Composerが必要です。
+以下が必要です。
+
+- Docker
+- Node.js 18.12以上とnpm
+- PHP 7.4以上とComposer
+- ZIPを扱うための`zip`と`unzip`
 
 ```sh
 npm install
@@ -44,10 +49,32 @@ npm run env:start
 WordPressは <http://localhost:8888> で起動します。
 
 ```sh
-composer lint
+composer run lint
 npm run test:php
 npm run build:zip
+npm run verify:zip
 npm run env:stop
 ```
 
 JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.1.0.zip` に生成されます。
+
+### 対応環境の検証
+
+プラグインヘッダーで宣言している最小環境と、代表的な現行環境の両方でPHPUnitを実行できます。
+
+- WordPress 7.1 / PHP 7.4（最小対応環境）
+- 現行安定版WordPress / PHP 8.3（代表環境）
+
+```sh
+npm run test:compat
+```
+
+完成した配布ZIPについては、開発用ファイルや依存関係を含まないことを確認したうえで、新規のWordPress 7.1 / PHP 7.4環境へインストールします。有効化後に管理画面の診断処理とJSON表示までを自動確認します。
+
+```sh
+npm run test:smoke
+```
+
+互換性テストとZIP導入テストは専用のDocker環境を使用するため、初回はWordPressやPHPイメージの取得に時間がかかることがあります。ZIP導入テストの専用環境は、テスト終了時に破棄されます。
+
+配布対象は `bin/package-files.txt` の許可リストで管理しています。`npm run verify:zip` はZIPの破損に加え、テスト、開発用コマンド、`vendor`、`node_modules`、`.env`、Git管理情報が含まれていないことも検査します。
