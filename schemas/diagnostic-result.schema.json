@@ -311,12 +311,12 @@
     },
     "wp10": {
       "type": "object", "additionalProperties": false,
-      "required": ["core_updates_pending", "plugin_updates_pending", "theme_updates_pending", "cache_complete"],
+      "required": ["core_updates_pending", "plugin_updates_pending", "theme_updates_pending", "required_update_caches_present"],
       "properties": {
         "core_updates_pending": { "type": "integer", "minimum": 0 },
         "plugin_updates_pending": { "type": ["integer", "null"], "minimum": 0 },
         "theme_updates_pending": { "type": ["integer", "null"], "minimum": 0 },
-        "cache_complete": { "type": "boolean" }
+        "required_update_caches_present": { "type": "boolean" }
       }
     },
     "wp11": {

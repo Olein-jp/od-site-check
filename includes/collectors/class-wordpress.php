@@ -243,19 +243,19 @@ final class ODSC_Collector_WordPress {
 			}
 		}
 
-		$available = is_object( $core ) && is_object( $plugins ) && is_object( $themes );
+		$required_update_caches_present = is_object( $core ) && is_object( $plugins ) && is_object( $themes );
 
 		return ODSC_Sanitizer::result(
 			'WP-10',
-			$available ? 'collected' : 'partial',
+			$required_update_caches_present ? 'collected' : 'partial',
 			'wordpress_update_cache',
 			array(
-				'core_updates_pending'   => $core_count,
-				'plugin_updates_pending' => is_object( $plugins ) && isset( $plugins->response ) && is_array( $plugins->response ) ? count( $plugins->response ) : null,
-				'theme_updates_pending'  => is_object( $themes ) && isset( $themes->response ) && is_array( $themes->response ) ? count( $themes->response ) : null,
-				'cache_complete'         => $available,
+				'core_updates_pending'           => $core_count,
+				'plugin_updates_pending'         => is_object( $plugins ) && isset( $plugins->response ) && is_array( $plugins->response ) ? count( $plugins->response ) : null,
+				'theme_updates_pending'          => is_object( $themes ) && isset( $themes->response ) && is_array( $themes->response ) ? count( $themes->response ) : null,
+				'required_update_caches_present' => $required_update_caches_present,
 			),
-			__( '保留件数は既存の更新キャッシュに基づきます。更新理由や互換性は判定していません。', 'od-site-check' )
+			__( '保留件数とキャッシュの存在は、保存済みのWordPress更新キャッシュだけに基づきます。外部サービスへ照会しておらず、最新情報の確認完了を意味しません。更新理由や互換性も判定していません。', 'od-site-check' )
 		);
 	}
 }

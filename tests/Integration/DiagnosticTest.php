@@ -139,6 +139,11 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 				$this->assertNull( $plugin['update_available'] );
 			}
 			$this->assertStringContainsString( '更新キャッシュを取得できない', $results['WP-07']['note'] );
+
+			$this->assertSame( 'partial', $results['WP-10']['status'] );
+			$this->assertFalse( $results['WP-10']['value']['required_update_caches_present'] );
+			$this->assertArrayNotHasKey( 'cache_complete', $results['WP-10']['value'] );
+			$this->assertStringContainsString( '最新情報の確認完了を意味しません', $results['WP-10']['note'] );
 			foreach ( ODSC_Collector::manual_ids() as $manual_id ) {
 				$this->assertSame( 'manual_required', $results[ $manual_id ]['status'] );
 				$this->assertNull( $results[ $manual_id ]['value'] );
@@ -156,23 +161,30 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_available_update_caches_can_report_no_updates() {
-		$theme_cache    = get_site_transient( 'update_themes' );
-		$plugin_cache   = get_site_transient( 'update_plugins' );
-		$active_plugins = get_option( 'active_plugins', array() );
-		$plugin_file    = 'od-site-check/od-site-check.php';
-		$checked_at     = 1700000000;
-		$empty_cache    = (object) array(
+		$core_cache       = get_site_transient( 'update_core' );
+		$theme_cache      = get_site_transient( 'update_themes' );
+		$plugin_cache     = get_site_transient( 'update_plugins' );
+		$active_plugins   = get_option( 'active_plugins', array() );
+		$plugin_file      = 'od-site-check/od-site-check.php';
+		$checked_at       = 1700000000;
+		$empty_cache      = (object) array(
 			'last_checked' => $checked_at,
 			'response'     => array(),
 		);
+		$empty_core_cache = (object) array(
+			'last_checked' => $checked_at,
+			'updates'      => array(),
+		);
 
 		update_option( 'active_plugins', array( $plugin_file ) );
+		set_site_transient( 'update_core', $empty_core_cache );
 		set_site_transient( 'update_themes', $empty_cache );
 		set_site_transient( 'update_plugins', $empty_cache );
 
 		try {
-			$theme_result  = ( new ODSC_Collector_Themes() )->collect_active_theme();
-			$plugin_result = ( new ODSC_Collector_Plugins() )->collect_active_plugins();
+			$theme_result   = ( new ODSC_Collector_Themes() )->collect_active_theme();
+			$plugin_result  = ( new ODSC_Collector_Plugins() )->collect_active_plugins();
+			$pending_result = ( new ODSC_Collector_WordPress() )->collect_pending_updates();
 
 			$this->assertSame( 'collected', $theme_result['status'] );
 			$this->assertTrue( $theme_result['value']['update_cache_available'] );
@@ -186,6 +198,14 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			foreach ( $plugin_result['value']['plugins'] as $plugin ) {
 				$this->assertFalse( $plugin['update_available'] );
 			}
+
+			$this->assertSame( 'collected', $pending_result['status'] );
+			$this->assertSame( 0, $pending_result['value']['core_updates_pending'] );
+			$this->assertSame( 0, $pending_result['value']['plugin_updates_pending'] );
+			$this->assertSame( 0, $pending_result['value']['theme_updates_pending'] );
+			$this->assertTrue( $pending_result['value']['required_update_caches_present'] );
+			$this->assertArrayNotHasKey( 'cache_complete', $pending_result['value'] );
+			$this->assertStringContainsString( '最新情報の確認完了を意味しません', $pending_result['note'] );
 
 			$theme_update_cache = clone $empty_cache;
 			$theme_stylesheet   = $theme_result['value']['stylesheet'];
@@ -209,6 +229,7 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			$this->assertSame( '99.0.0', $updated_plugin['value']['plugins'][0]['new_version'] );
 		} finally {
 			update_option( 'active_plugins', $active_plugins );
+			$this->restore_site_transient( 'update_core', $core_cache );
 			$this->restore_site_transient( 'update_themes', $theme_cache );
 			$this->restore_site_transient( 'update_plugins', $plugin_cache );
 		}
