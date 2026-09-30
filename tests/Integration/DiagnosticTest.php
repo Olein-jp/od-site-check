@@ -58,6 +58,71 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensures manual answers are allowlisted and converted into collected records.
+	 *
+	 * @return void
+	 */
+	public function test_manual_answers_are_applied_to_allowlisted_items() {
+		$exporter = new ODSC_Exporter();
+		$payload  = $exporter->apply_manual_inputs(
+			( new ODSC_Collector() )->collect(),
+			array(
+				'OPS-01' => 'レンタルサーバーの年間契約',
+				'OPS-10' => '  ',
+				'WP-01'  => '変更されない値',
+			)
+		);
+		$results  = array_combine( wp_list_pluck( $payload['results'], 'id' ), $payload['results'] );
+
+		$this->assertSame( 'collected', $results['OPS-01']['status'] );
+		$this->assertSame( 'manual_input', $results['OPS-01']['source'] );
+		$this->assertSame( array( 'response' => 'レンタルサーバーの年間契約' ), $results['OPS-01']['value'] );
+		$this->assertSame( 'manual_required', $results['OPS-10']['status'] );
+		$this->assertNotSame( 'manual_input', $results['WP-01']['source'] );
+	}
+
+	/**
+	 * Ensures a payload containing manual answers still matches the JSON Schema.
+	 *
+	 * @return void
+	 */
+	public function test_payload_with_manual_answers_matches_json_schema() {
+		$payload   = ( new ODSC_Exporter() )->apply_manual_inputs(
+			( new ODSC_Collector() )->collect(),
+			array( 'OPS-19' => '平日日中は保守担当者が一次対応する。' )
+		);
+		$schema    = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+		$data      = json_decode( wp_json_encode( $payload ) );
+		$validator = new Validator();
+		$result    = $validator->validate( $data, $schema );
+
+		$this->assertTrue( $result->isValid() );
+	}
+
+	/**
+	 * Ensures labels and manual IDs cover the expected diagnostic contract.
+	 *
+	 * @return void
+	 */
+	public function test_item_labels_and_manual_ids_are_complete() {
+		$this->assertSame( ODSC_Collector::expected_ids(), array_keys( ODSC_Collector::item_labels() ) );
+		$this->assertSame( array( 'OPS-01', 'OPS-10', 'OPS-12', 'OPS-14', 'OPS-18', 'OPS-19' ), ODSC_Collector::manual_ids() );
+	}
+
+	/**
+	 * Ensures the export filename contains a safe site domain and timestamp.
+	 *
+	 * @return void
+	 */
+	public function test_export_filename_identifies_the_site() {
+		$host      = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+		$safe_host = trim( (string) preg_replace( '/[^a-z0-9.-]+/', '-', $host ), '.-' );
+		$filename  = ( new ODSC_Exporter() )->get_filename();
+
+		$this->assertMatchesRegularExpression( '/^od-site-check-' . preg_quote( $safe_host, '/' ) . '-\d{8}-\d{6}\.json$/', $filename );
+	}
+
+	/**
 	 * Ensures one failing item does not interrupt other items.
 	 *
 	 * @return void

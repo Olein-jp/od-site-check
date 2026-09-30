@@ -60,6 +60,14 @@
         "active": { "type": "boolean" }
       }
     },
+	"manualInput": {
+	  "type": "object",
+	  "additionalProperties": false,
+	  "required": ["response"],
+	  "properties": {
+		"response": { "type": "string", "minLength": 1, "maxLength": 2000 }
+	  }
+	},
     "result": {
       "type": "object",
       "additionalProperties": false,
@@ -81,18 +89,31 @@
           "if": { "properties": { "status": { "enum": ["manual_required", "unavailable", "unsupported", "error"] } } },
           "then": { "properties": { "value": { "type": "null" } } }
         },
-        {
-          "if": { "properties": { "id": { "enum": ["OPS-01", "OPS-10", "OPS-12", "OPS-14", "OPS-18", "OPS-19"] } } },
-          "then": {
-            "properties": {
-              "status": { "const": "manual_required" },
-              "source": { "type": "null" },
-              "value": { "type": "null" },
-              "note": { "type": "string", "minLength": 1 },
-              "error_code": { "type": "null" }
-            }
-          }
-        },
+		{
+		  "if": { "properties": { "id": { "enum": ["OPS-01", "OPS-10", "OPS-12", "OPS-14", "OPS-18", "OPS-19"] } }, "required": ["id"] },
+		  "then": {
+			"oneOf": [
+			  {
+				"properties": {
+				  "status": { "const": "manual_required" },
+				  "source": { "type": "null" },
+				  "value": { "type": "null" },
+				  "note": { "type": "string", "minLength": 1 },
+				  "error_code": { "type": "null" }
+				}
+			  },
+			  {
+				"properties": {
+				  "status": { "const": "collected" },
+				  "source": { "const": "manual_input" },
+				  "value": { "$ref": "#/definitions/manualInput" },
+				  "note": { "type": "string", "minLength": 1 },
+				  "error_code": { "type": "null" }
+				}
+			  }
+			]
+		  }
+		},
         {
           "if": { "properties": { "id": { "const": "WP-01" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
           "then": { "properties": { "value": { "$ref": "#/definitions/wp01" } } }

@@ -88,6 +88,21 @@ final class ODSC_Admin {
 
 		wp_enqueue_style( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.css', array(), ODSC_VERSION );
 		wp_enqueue_script( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.js', array(), ODSC_VERSION, true );
+		wp_localize_script(
+			'odsc-admin',
+			'odscAdmin',
+			array(
+				'checking'     => __( '確認しています…', 'od-site-check' ),
+				'checkingNote' => __( 'サイトの情報を確認しています。この画面を閉じずにお待ちください。', 'od-site-check' ),
+				'copy'         => __( 'JSONをコピー', 'od-site-check' ),
+				'copied'       => __( 'JSONをコピーしました。', 'od-site-check' ),
+				'copyFailed'   => __( 'コピーできませんでした。JSON欄を選択してコピーしてください。', 'od-site-check' ),
+				'manualNote'   => __( '管理画面で手動入力されました。', 'od-site-check' ),
+				'manualFilled' => __( '入力済み', 'od-site-check' ),
+				'statusLabels' => $this->get_status_labels(),
+				'statusIcons'  => $this->get_status_icons(),
+			)
+		);
 	}
 
 	/**
@@ -146,7 +161,21 @@ final class ODSC_Admin {
 			wp_die( esc_html__( '診断結果の形式が正しくありません。', 'od-site-check' ), '', array( 'response' => 400 ) );
 		}
 
-		$exporter->download( $json );
+		$manual_inputs = array();
+		$submitted     = isset( $_POST['odsc_manual'] ) && is_array( $_POST['odsc_manual'] ) ? wp_unslash( $_POST['odsc_manual'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each allowlisted value is sanitized below.
+
+		foreach ( ODSC_Collector::manual_ids() as $id ) {
+			if ( isset( $submitted[ $id ] ) && is_string( $submitted[ $id ] ) ) {
+				$manual_inputs[ $id ] = wp_html_excerpt( sanitize_textarea_field( $submitted[ $id ] ), 2000, '' );
+			}
+		}
+
+		$payload = $exporter->apply_manual_inputs( $payload, $manual_inputs );
+		if ( ! $exporter->is_valid_payload( $payload ) ) {
+			wp_die( esc_html__( '手動入力を反映した診断結果の形式が正しくありません。', 'od-site-check' ), '', array( 'response' => 400 ) );
+		}
+
+		$exporter->download( $exporter->encode( $payload ) );
 	}
 
 	/**
@@ -251,24 +280,64 @@ final class ODSC_Admin {
 
 		$exporter = new ODSC_Exporter();
 		$json     = $exporter->encode( $result );
+		$labels   = ODSC_Collector::item_labels();
 		?>
 		<div class="notice notice-success inline"><p><?php esc_html_e( 'サイトの状態確認が完了しました。', 'od-site-check' ); ?></p></div>
 		<div class="odsc-card">
 			<h2><?php esc_html_e( '診断結果の概要', 'od-site-check' ); ?></h2>
 			<dl class="odsc-summary">
 				<div><dt><?php esc_html_e( '診断日時', 'od-site-check' ); ?></dt><dd><?php echo esc_html( $result['collected_at'] ); ?></dd></div>
-				<div><dt><?php esc_html_e( '取得成功項目数', 'od-site-check' ); ?></dt><dd><?php echo esc_html( (string) $summary['collected'] ); ?></dd></div>
-				<div><dt><?php esc_html_e( '取得できなかった項目数', 'od-site-check' ); ?></dt><dd><?php echo esc_html( (string) $summary['missing'] ); ?></dd></div>
-				<div><dt><?php esc_html_e( '手動確認が必要な項目数', 'od-site-check' ); ?></dt><dd><?php echo esc_html( (string) $summary['manual'] ); ?></dd></div>
-				<div><dt><?php esc_html_e( 'エラーが発生した項目数', 'od-site-check' ); ?></dt><dd><?php echo esc_html( (string) $summary['error'] ); ?></dd></div>
+				<div><dt><?php esc_html_e( '取得・入力済み項目数', 'od-site-check' ); ?></dt><dd id="odsc-summary-collected"><?php echo esc_html( (string) $summary['collected'] ); ?></dd></div>
+				<div><dt><?php esc_html_e( '一部取得・未取得項目数', 'od-site-check' ); ?></dt><dd id="odsc-summary-missing"><?php echo esc_html( (string) $summary['missing'] ); ?></dd></div>
+				<div><dt><?php esc_html_e( '手動入力待ち項目数', 'od-site-check' ); ?></dt><dd id="odsc-summary-manual"><?php echo esc_html( (string) $summary['manual'] ); ?></dd></div>
+				<div><dt><?php esc_html_e( 'エラーが発生した項目数', 'od-site-check' ); ?></dt><dd id="odsc-summary-error"><?php echo esc_html( (string) $summary['error'] ); ?></dd></div>
 			</dl>
+		</div>
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<div class="odsc-card">
+			<h2><?php esc_html_e( '項目別の取得状況', 'od-site-check' ); ?></h2>
+			<p><?php esc_html_e( '各項目が取得できたか、追加確認が必要かを一覧で確認できます。', 'od-site-check' ); ?></p>
+			<ul class="odsc-results-list">
+				<?php foreach ( $result['results'] as $item ) : ?>
+					<?php $status = $this->get_status_details( $item['status'] ); ?>
+					<li data-odsc-result-id="<?php echo esc_attr( $item['id'] ); ?>">
+						<span class="odsc-result-name"><code><?php echo esc_html( $item['id'] ); ?></code> <?php echo esc_html( $labels[ $item['id'] ] ); ?></span>
+						<span class="odsc-status odsc-status--<?php echo esc_attr( $status['class'] ); ?>" data-odsc-status>
+							<span class="dashicons <?php echo esc_attr( $status['icon'] ); ?>" aria-hidden="true"></span>
+							<span data-odsc-status-label><?php echo esc_html( $status['label'] ); ?></span>
+						</span>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+
+		<div class="odsc-card">
+			<h2><?php esc_html_e( '手動確認項目を入力', 'od-site-check' ); ?></h2>
+			<p><?php esc_html_e( 'WordPressから自動取得できない契約・運用情報です。分かる範囲で入力すると、下のJSONへすぐに反映されます。', 'od-site-check' ); ?></p>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="odsc-export-form">
 				<input type="hidden" name="action" value="odsc_download">
 				<input type="hidden" name="odsc_payload" value="<?php echo esc_attr( base64_encode( $json ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes signed JSON for form transport. ?>">
 				<input type="hidden" name="odsc_signature" value="<?php echo esc_attr( $exporter->sign( $json ) ); ?>">
 				<?php wp_nonce_field( 'odsc_download_result', '_odsc_download_nonce' ); ?>
-				<?php submit_button( __( '診断結果をダウンロードする', 'od-site-check' ), 'primary large', 'submit', false ); ?>
+
+				<div class="odsc-manual-fields">
+					<?php foreach ( ODSC_Collector::manual_ids() as $id ) : ?>
+						<label for="odsc-manual-<?php echo esc_attr( strtolower( $id ) ); ?>">
+							<span><code><?php echo esc_html( $id ); ?></code> <?php echo esc_html( $labels[ $id ] ); ?></span>
+							<textarea id="odsc-manual-<?php echo esc_attr( strtolower( $id ) ); ?>" name="odsc_manual[<?php echo esc_attr( $id ); ?>]" rows="3" maxlength="2000" data-odsc-manual-id="<?php echo esc_attr( $id ); ?>"></textarea>
+						</label>
+					<?php endforeach; ?>
+				</div>
+
+				<h3><?php esc_html_e( 'JSONプレビュー', 'od-site-check' ); ?></h3>
+				<p><?php esc_html_e( '入力内容を含むJSONです。コピーするか、ファイルとしてダウンロードできます。', 'od-site-check' ); ?></p>
+				<textarea id="odsc-json-preview" class="odsc-json-preview" rows="18" readonly><?php echo esc_textarea( $json ); ?></textarea>
+				<div class="odsc-export-actions">
+					<button type="button" id="odsc-copy-json" class="button button-secondary"><?php esc_html_e( 'JSONをコピー', 'od-site-check' ); ?></button>
+					<?php submit_button( __( 'JSONをダウンロード', 'od-site-check' ), 'primary', 'submit', false ); ?>
+				</div>
+				<p id="odsc-copy-status" class="odsc-copy-status" role="status" aria-live="polite"></p>
 			</form>
 		</div>
 
@@ -277,5 +346,58 @@ final class ODSC_Admin {
 			<p><?php esc_html_e( 'ダウンロードしたJSONファイルをオレインデザインへお送りください。調査終了後は、このプラグインを無効化・削除してください。', 'od-site-check' ); ?></p>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Returns translated status labels.
+	 *
+	 * @return array<string, string>
+	 */
+	private function get_status_labels() {
+		return array(
+			'collected'       => __( '取得済み', 'od-site-check' ),
+			'partial'         => __( '一部取得', 'od-site-check' ),
+			'manual_required' => __( '手動入力待ち', 'od-site-check' ),
+			'unavailable'     => __( '取得不可', 'od-site-check' ),
+			'unsupported'     => __( '未対応', 'od-site-check' ),
+			'error'           => __( 'エラー', 'od-site-check' ),
+		);
+	}
+
+	/**
+	 * Returns Dashicons for each status.
+	 *
+	 * @return array<string, string>
+	 */
+	private function get_status_icons() {
+		return array(
+			'collected'       => 'dashicons-yes-alt',
+			'partial'         => 'dashicons-warning',
+			'manual_required' => 'dashicons-edit',
+			'unavailable'     => 'dashicons-minus',
+			'unsupported'     => 'dashicons-minus',
+			'error'           => 'dashicons-dismiss',
+		);
+	}
+
+	/**
+	 * Returns display details for a status.
+	 *
+	 * @param string $status Status value.
+	 * @return array<string, string>
+	 */
+	private function get_status_details( $status ) {
+		$labels = $this->get_status_labels();
+		$icons  = $this->get_status_icons();
+
+		if ( ! isset( $labels[ $status ], $icons[ $status ] ) ) {
+			$status = 'unavailable';
+		}
+
+		return array(
+			'class' => $status,
+			'label' => $labels[ $status ],
+			'icon'  => $icons[ $status ],
+		);
 	}
 }

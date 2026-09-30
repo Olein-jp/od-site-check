@@ -14,6 +14,36 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class ODSC_Exporter {
 	/**
+	 * Applies allowlisted manual answers to a collected payload.
+	 *
+	 * @param array<string, mixed>  $payload Diagnostic payload.
+	 * @param array<string, string> $inputs  Manual answers keyed by item ID.
+	 * @return array<string, mixed>
+	 */
+	public function apply_manual_inputs( $payload, $inputs ) {
+		$manual_ids = ODSC_Collector::manual_ids();
+
+		foreach ( $payload['results'] as &$result ) {
+			if ( ! in_array( $result['id'], $manual_ids, true ) ) {
+				continue;
+			}
+
+			$answer = isset( $inputs[ $result['id'] ] ) ? trim( $inputs[ $result['id'] ] ) : '';
+			if ( '' === $answer ) {
+				continue;
+			}
+
+			$result['status']     = 'collected';
+			$result['source']     = 'manual_input';
+			$result['value']      = array( 'response' => $answer );
+			$result['note']       = __( '管理画面で手動入力されました。', 'od-site-check' );
+			$result['error_code'] = null;
+		}
+		unset( $result );
+
+		return $payload;
+	}
+	/**
 	 * Encodes a diagnostic payload.
 	 *
 	 * @param array<string, mixed> $payload Diagnostic payload.
@@ -85,7 +115,7 @@ final class ODSC_Exporter {
 	 * @return void
 	 */
 	public function download( $json ) {
-		$filename = 'od-site-check-' . current_time( 'Ymd-His' ) . '.json';
+		$filename = $this->get_filename();
 
 		nocache_headers();
 		header( 'Content-Type: application/json; charset=utf-8' );
@@ -95,5 +125,30 @@ final class ODSC_Exporter {
 
 		echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Signed JSON download, not HTML.
 		exit;
+	}
+
+	/**
+	 * Builds a filename that identifies the diagnosed site.
+	 *
+	 * @return string
+	 */
+	public function get_filename() {
+		$host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+		$host = strtolower( $host );
+
+		if ( function_exists( 'idn_to_ascii' ) && '' !== $host ) {
+			$ascii_host = idn_to_ascii( $host );
+			if ( false !== $ascii_host ) {
+				$host = $ascii_host;
+			}
+		}
+
+		$host = preg_replace( '/[^a-z0-9.-]+/', '-', $host );
+		$host = trim( (string) $host, '.-' );
+		if ( '' === $host ) {
+			$host = 'site';
+		}
+
+		return 'od-site-check-' . $host . '-' . current_time( 'Ymd-His' ) . '.json';
 	}
 }

@@ -46,6 +46,47 @@ final class ODSC_Collector {
 	}
 
 	/**
+	 * Returns diagnostic item labels keyed by ID.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function item_labels() {
+		return array(
+			'WP-01'  => __( 'WordPressバージョン', 'od-site-check' ),
+			'WP-02'  => __( '更新設定', 'od-site-check' ),
+			'WP-03'  => __( 'サイトヘルス', 'od-site-check' ),
+			'WP-04'  => __( '使用テーマ', 'od-site-check' ),
+			'WP-07'  => __( '有効プラグイン', 'od-site-check' ),
+			'WP-08'  => __( '無効プラグイン', 'od-site-check' ),
+			'WP-09'  => __( '独自開発コード', 'od-site-check' ),
+			'WP-10'  => __( '更新上の懸念', 'od-site-check' ),
+			'WP-11'  => __( 'ユーザー権限', 'od-site-check' ),
+			'WP-12'  => __( 'ログイン保護', 'od-site-check' ),
+			'WP-13'  => __( '一般設定', 'od-site-check' ),
+			'WP-15'  => __( '表示設定', 'od-site-check' ),
+			'OPS-01' => __( 'サーバー契約', 'od-site-check' ),
+			'OPS-03' => __( 'PHP', 'od-site-check' ),
+			'OPS-04' => __( 'データベース', 'od-site-check' ),
+			'OPS-05' => __( '容量・リソース', 'od-site-check' ),
+			'OPS-10' => __( 'バックアップ対象', 'od-site-check' ),
+			'OPS-11' => __( 'バックアップ方式', 'od-site-check' ),
+			'OPS-12' => __( 'バックアップ頻度', 'od-site-check' ),
+			'OPS-14' => __( 'バックアップ取得履歴', 'od-site-check' ),
+			'OPS-18' => __( '更新作業の運用方法', 'od-site-check' ),
+			'OPS-19' => __( '障害対応体制', 'od-site-check' ),
+		);
+	}
+
+	/**
+	 * Returns IDs that always require operator input.
+	 *
+	 * @return string[]
+	 */
+	public static function manual_ids() {
+		return array( 'OPS-01', 'OPS-10', 'OPS-12', 'OPS-14', 'OPS-18', 'OPS-19' );
+	}
+
+	/**
 	 * Runs the complete diagnosis.
 	 *
 	 * @return array<string, mixed>

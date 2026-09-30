@@ -57,3 +57,110 @@
 	margin: 8px 0 0;
 	font-size: 1.4em;
 }
+
+.odsc-results-list {
+	margin: 16px 0 0;
+	border-top: 1px solid #dcdcde;
+}
+
+.odsc-card .odsc-results-list li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0;
+	padding: 12px 4px;
+	border-bottom: 1px solid #dcdcde;
+	list-style: none;
+}
+
+.odsc-result-name {
+	font-weight: 600;
+}
+
+.odsc-result-name code {
+	display: inline-block;
+	min-width: 58px;
+	font-weight: 400;
+}
+
+.odsc-status {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 0 auto;
+	gap: 5px;
+	font-weight: 600;
+}
+
+.odsc-status--collected {
+	color: #008a20;
+}
+
+.odsc-status--partial {
+	color: #996800;
+}
+
+.odsc-status--manual_required {
+	color: #135e96;
+}
+
+.odsc-status--unavailable,
+.odsc-status--unsupported {
+	color: #646970;
+}
+
+.odsc-status--error {
+	color: #b32d2e;
+}
+
+.odsc-manual-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18px;
+	margin: 20px 0 28px;
+}
+
+.odsc-manual-fields label,
+.odsc-manual-fields label > span {
+	display: block;
+}
+
+.odsc-manual-fields label > span {
+	margin-bottom: 6px;
+	font-weight: 600;
+}
+
+.odsc-manual-fields textarea,
+.odsc-json-preview {
+	width: 100%;
+}
+
+.odsc-json-preview {
+	font-family: Consolas, Monaco, monospace;
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: pre;
+}
+
+.odsc-export-actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 12px;
+}
+
+.odsc-copy-status {
+	min-height: 1.5em;
+	margin-bottom: 0;
+}
+
+@media screen and (max-width: 782px) {
+	.odsc-card {
+		padding: 18px;
+	}
+
+	.odsc-manual-fields {
+		grid-template-columns: 1fr;
+	}
+}
