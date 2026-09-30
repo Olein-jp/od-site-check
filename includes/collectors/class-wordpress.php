@@ -75,10 +75,10 @@ final class ODSC_Collector_WordPress {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-site-health.php';
 		}
 
-		$definitions = $this->get_safe_site_health_tests();
-		$tests       = array();
-		$failures    = array();
-		$summary     = array(
+		$definitions        = $this->get_safe_site_health_tests();
+		$tests              = array();
+		$execution_failures = array();
+		$summary            = array(
 			'good'        => 0,
 			'recommended' => 0,
 			'critical'    => 0,
@@ -109,7 +109,7 @@ final class ODSC_Collector_WordPress {
 					! in_array( $result['status'], array( 'good', 'recommended', 'critical' ), true ) ||
 					! is_string( $result['label'] )
 				) {
-					$failures[] = array(
+					$execution_failures[] = array(
 						'id'         => $id,
 						'error_code' => 'test_failed',
 					);
@@ -124,7 +124,7 @@ final class ODSC_Collector_WordPress {
 					'category' => $definition['category'],
 				);
 			} catch ( Throwable $throwable ) {
-				$failures[] = array(
+				$execution_failures[] = array(
 					'id'         => $id,
 					'error_code' => 'test_failed',
 				);
@@ -133,8 +133,8 @@ final class ODSC_Collector_WordPress {
 
 		$attempted = count( $definitions );
 		$completed = count( $tests );
-		$status    = empty( $failures ) ? 'collected' : 'partial';
-		$note      = empty( $failures )
+		$status    = empty( $execution_failures ) ? 'collected' : 'partial';
+		$note      = empty( $execution_failures )
 			? sprintf(
 				/* translators: %d: Number of Site Health tests collected. */
 				__( '外部通信や書き込みを行わない、安全なサイトヘルステスト%d件を取得しました。サイトヘルスの全項目ではありません。', 'od-site-check' ),
@@ -145,7 +145,7 @@ final class ODSC_Collector_WordPress {
 				__( '安全なサイトヘルステスト%2$d件中%1$d件を取得しました。実行できなかったテスト（%3$s）があり、サイトヘルスの全項目でもありません。', 'od-site-check' ),
 				$completed,
 				$attempted,
-				implode( ', ', wp_list_pluck( $failures, 'id' ) )
+				implode( ', ', wp_list_pluck( $execution_failures, 'id' ) )
 			);
 
 		return ODSC_Sanitizer::result(
@@ -153,15 +153,15 @@ final class ODSC_Collector_WordPress {
 			$status,
 			'wordpress_site_health_allowlist',
 			array(
-				'environment_type' => wp_get_environment_type(),
-				'wp_debug'         => defined( 'WP_DEBUG' ) && WP_DEBUG,
-				'wp_debug_display' => defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY,
-				'wp_debug_log'     => defined( 'WP_DEBUG_LOG' ) && (bool) WP_DEBUG_LOG,
-				'tests_attempted'  => $attempted,
-				'tests_completed'  => $completed,
-				'status_counts'    => $summary,
-				'tests'            => $tests,
-				'failed_tests'     => $failures,
+				'environment_type'       => wp_get_environment_type(),
+				'wp_debug'               => defined( 'WP_DEBUG' ) && WP_DEBUG,
+				'wp_debug_display'       => defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY,
+				'wp_debug_log'           => defined( 'WP_DEBUG_LOG' ) && (bool) WP_DEBUG_LOG,
+				'tests_attempted'        => $attempted,
+				'tests_completed'        => $completed,
+				'status_counts'          => $summary,
+				'tests'                  => $tests,
+				'execution_failed_tests' => $execution_failures,
 			),
 			$note
 		);

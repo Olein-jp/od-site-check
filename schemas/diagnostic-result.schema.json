@@ -194,7 +194,7 @@
     },
     "wp03": {
       "type": "object", "additionalProperties": false,
-      "required": ["environment_type", "wp_debug", "wp_debug_display", "wp_debug_log", "tests_attempted", "tests_completed", "status_counts", "tests", "failed_tests"],
+      "required": ["environment_type", "wp_debug", "wp_debug_display", "wp_debug_log", "tests_attempted", "tests_completed", "status_counts", "tests", "execution_failed_tests"],
       "properties": {
         "environment_type": { "type": "string" },
         "wp_debug": { "type": "boolean" },
@@ -215,7 +215,7 @@
           "type": "array", "maxItems": 11,
           "items": { "$ref": "#/definitions/siteHealthTest" }
         },
-        "failed_tests": {
+        "execution_failed_tests": {
           "type": "array", "maxItems": 11,
           "items": { "$ref": "#/definitions/siteHealthFailure" }
         }

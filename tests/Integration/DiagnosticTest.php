@@ -275,12 +275,47 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		$this->assertSame( 11, $value['tests_completed'] );
 		$this->assertSame( $expected_ids, wp_list_pluck( $value['tests'], 'id' ) );
 		$this->assertSame( 11, array_sum( $value['status_counts'] ) );
-		$this->assertSame( array(), $value['failed_tests'] );
+		$this->assertSame( array(), $value['execution_failed_tests'] );
+		$this->assertArrayNotHasKey( 'failed_tests', $value );
 		$this->assertSame( $cron_before, _get_cron_array() );
 
 		foreach ( $value['tests'] as $test ) {
 			$this->assertSame( array( 'id', 'status', 'label', 'category' ), array_keys( $test ) );
 			$this->assertSame( wp_strip_all_tags( $test['label'] ), $test['label'] );
+		}
+	}
+
+	/**
+	 * Ensures Site Health result statuses are not reported as execution failures.
+	 *
+	 * @return void
+	 */
+	public function test_site_health_result_statuses_are_not_execution_failures() {
+		$filter = static function ( $result, $id ) {
+			if ( is_array( $result ) && 'php_sessions' === $id ) {
+				$result['status'] = 'recommended';
+			}
+
+			if ( is_array( $result ) && 'ssl_support' === $id ) {
+				$result['status'] = 'critical';
+			}
+
+			return $result;
+		};
+
+		add_filter( 'odsc_site_health_test_result', $filter, 10, 2 );
+
+		try {
+			$result = ( new ODSC_Collector_WordPress() )->collect_site_health();
+			$tests  = array_combine( wp_list_pluck( $result['value']['tests'], 'id' ), $result['value']['tests'] );
+
+			$this->assertSame( 'collected', $result['status'] );
+			$this->assertSame( 'recommended', $tests['php_sessions']['status'] );
+			$this->assertSame( 'critical', $tests['ssl_support']['status'] );
+			$this->assertSame( array(), $result['value']['execution_failed_tests'] );
+			$this->assertArrayNotHasKey( 'failed_tests', $result['value'] );
+		} finally {
+			remove_filter( 'odsc_site_health_test_result', $filter, 10 );
 		}
 	}
 
@@ -315,8 +350,9 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 					'error_code' => 'test_failed',
 				),
 			),
-			$result['value']['failed_tests']
+			$result['value']['execution_failed_tests']
 		);
+		$this->assertArrayNotHasKey( 'failed_tests', $result['value'] );
 		$this->assertStringNotContainsString( 'Sensitive Site Health detail.', wp_json_encode( $result ) );
 		$this->assertStringContainsString( 'php_sessions', $result['note'] );
 		$this->assertContains( 'sql_server', wp_list_pluck( $result['value']['tests'], 'id' ) );
