@@ -25,9 +25,12 @@ while IFS= read -r item; do
 	cp "$project_root/$item" "$plugin_dir/$item"
 done < "$project_root/bin/package-files.txt"
 
+# 繰り返し生成しても同一のZIPになるよう、アーカイブ内の日時を固定する。
+find "$plugin_dir" -exec touch -t 198001010000 {} +
+
 (
 	cd "$staging"
-	zip -qrFS "$archive" od-site-check
+	zip -qrFSX "$archive" od-site-check
 )
 
 printf '%s\n' "$archive"
