@@ -108,6 +108,108 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensures missing update caches are not reported as no updates.
+	 *
+	 * @return void
+	 */
+	public function test_missing_update_caches_are_reported_as_partial() {
+		$theme_cache  = get_site_transient( 'update_themes' );
+		$plugin_cache = get_site_transient( 'update_plugins' );
+
+		delete_site_transient( 'update_themes' );
+		delete_site_transient( 'update_plugins' );
+
+		try {
+			$payload = ( new ODSC_Collector() )->collect();
+			$results = array_combine( wp_list_pluck( $payload['results'], 'id' ), $payload['results'] );
+			$schema  = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+			$valid   = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
+
+			$this->assertSame( 'partial', $results['WP-04']['status'] );
+			$this->assertFalse( $results['WP-04']['value']['update_cache_available'] );
+			$this->assertNull( $results['WP-04']['value']['update_cache_checked_at'] );
+			$this->assertNull( $results['WP-04']['value']['update_available'] );
+			$this->assertStringContainsString( '更新キャッシュを取得できない', $results['WP-04']['note'] );
+
+			$this->assertSame( 'partial', $results['WP-07']['status'] );
+			$this->assertFalse( $results['WP-07']['value']['update_cache_available'] );
+			$this->assertNull( $results['WP-07']['value']['update_cache_checked_at'] );
+			foreach ( $results['WP-07']['value']['plugins'] as $plugin ) {
+				$this->assertNull( $plugin['update_available'] );
+			}
+			$this->assertStringContainsString( '更新キャッシュを取得できない', $results['WP-07']['note'] );
+			$this->assertTrue( $valid->isValid() );
+		} finally {
+			$this->restore_site_transient( 'update_themes', $theme_cache );
+			$this->restore_site_transient( 'update_plugins', $plugin_cache );
+		}
+	}
+
+	/**
+	 * Ensures an available empty cache means updates were checked and none exist.
+	 *
+	 * @return void
+	 */
+	public function test_available_update_caches_can_report_no_updates() {
+		$theme_cache    = get_site_transient( 'update_themes' );
+		$plugin_cache   = get_site_transient( 'update_plugins' );
+		$active_plugins = get_option( 'active_plugins', array() );
+		$plugin_file    = 'od-site-check/od-site-check.php';
+		$checked_at     = 1700000000;
+		$empty_cache    = (object) array(
+			'last_checked' => $checked_at,
+			'response'     => array(),
+		);
+
+		update_option( 'active_plugins', array( $plugin_file ) );
+		set_site_transient( 'update_themes', $empty_cache );
+		set_site_transient( 'update_plugins', $empty_cache );
+
+		try {
+			$theme_result  = ( new ODSC_Collector_Themes() )->collect_active_theme();
+			$plugin_result = ( new ODSC_Collector_Plugins() )->collect_active_plugins();
+
+			$this->assertSame( 'collected', $theme_result['status'] );
+			$this->assertTrue( $theme_result['value']['update_cache_available'] );
+			$this->assertSame( wp_date( DATE_RFC3339, $checked_at ), $theme_result['value']['update_cache_checked_at'] );
+			$this->assertFalse( $theme_result['value']['update_available'] );
+
+			$this->assertSame( 'collected', $plugin_result['status'] );
+			$this->assertTrue( $plugin_result['value']['update_cache_available'] );
+			$this->assertSame( wp_date( DATE_RFC3339, $checked_at ), $plugin_result['value']['update_cache_checked_at'] );
+			$this->assertCount( 1, $plugin_result['value']['plugins'] );
+			foreach ( $plugin_result['value']['plugins'] as $plugin ) {
+				$this->assertFalse( $plugin['update_available'] );
+			}
+
+			$theme_update_cache = clone $empty_cache;
+			$theme_stylesheet   = $theme_result['value']['stylesheet'];
+
+			$theme_update_cache->response[ $theme_stylesheet ] = array( 'new_version' => '99.0.0' );
+
+			$plugin_update_cache = clone $empty_cache;
+
+			$plugin_update_cache->response[ $plugin_file ] = (object) array( 'new_version' => '99.0.0' );
+			set_site_transient( 'update_themes', $theme_update_cache );
+			set_site_transient( 'update_plugins', $plugin_update_cache );
+
+			$updated_theme  = ( new ODSC_Collector_Themes() )->collect_active_theme();
+			$updated_plugin = ( new ODSC_Collector_Plugins() )->collect_active_plugins();
+
+			$this->assertSame( $theme_result['value']['name'], $updated_theme['value']['name'] );
+			$this->assertTrue( $updated_theme['value']['update_available'] );
+			$this->assertSame( '99.0.0', $updated_theme['value']['new_version'] );
+			$this->assertSame( $plugin_result['value']['plugins'][0]['name'], $updated_plugin['value']['plugins'][0]['name'] );
+			$this->assertTrue( $updated_plugin['value']['plugins'][0]['update_available'] );
+			$this->assertSame( '99.0.0', $updated_plugin['value']['plugins'][0]['new_version'] );
+		} finally {
+			update_option( 'active_plugins', $active_plugins );
+			$this->restore_site_transient( 'update_themes', $theme_cache );
+			$this->restore_site_transient( 'update_plugins', $plugin_cache );
+		}
+	}
+
+	/**
 	 * Ensures WP-03 exposes only the fixed safe Site Health result fields.
 	 *
 	 * @return void
@@ -367,5 +469,21 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		$property = new ReflectionProperty( ODSC_Admin::class, 'result' );
 		$property->setAccessible( true );
 		$property->setValue( ODSC_Admin::get_instance(), $value );
+	}
+
+	/**
+	 * Restores a site transient changed by a test.
+	 *
+	 * @param string $key   Transient name.
+	 * @param mixed  $value Previous value, or false if absent.
+	 * @return void
+	 */
+	private function restore_site_transient( $key, $value ) {
+		if ( false === $value ) {
+			delete_site_transient( $key );
+			return;
+		}
+
+		set_site_transient( $key, $value );
 	}
 }

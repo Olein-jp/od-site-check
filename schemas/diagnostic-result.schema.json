@@ -37,6 +37,15 @@
     "nullableString": {
       "type": ["string", "null"]
     },
+    "nullableBoolean": {
+      "type": ["boolean", "null"]
+    },
+    "nullableDateTime": {
+      "oneOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ]
+    },
     "pluginSummary": {
       "type": "object",
       "additionalProperties": false,
@@ -46,6 +55,18 @@
         "identifier": { "type": "string" },
         "version": { "type": "string" },
         "update_available": { "type": "boolean" },
+        "new_version": { "$ref": "#/definitions/nullableString" }
+      }
+    },
+    "activePluginSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "identifier", "version", "update_available", "new_version"],
+      "properties": {
+        "name": { "type": "string" },
+        "identifier": { "type": "string" },
+        "version": { "type": "string" },
+        "update_available": { "$ref": "#/definitions/nullableBoolean" },
         "new_version": { "$ref": "#/definitions/nullableString" }
       }
     },
@@ -106,11 +127,15 @@
           "then": { "properties": { "value": { "$ref": "#/definitions/wp03" } } }
         },
         {
-          "if": { "properties": { "id": { "const": "WP-04" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "if": { "properties": { "id": { "const": "WP-04" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
           "then": { "properties": { "value": { "$ref": "#/definitions/wp04" } } }
         },
         {
-          "if": { "properties": { "id": { "enum": ["WP-07", "WP-08"] }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "if": { "properties": { "id": { "const": "WP-07" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
+          "then": { "properties": { "value": { "$ref": "#/definitions/activePluginList" } } }
+        },
+        {
+          "if": { "properties": { "id": { "const": "WP-08" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
           "then": { "properties": { "value": { "$ref": "#/definitions/pluginList" } } }
         },
         {
@@ -217,13 +242,49 @@
     },
     "wp04": {
       "type": "object", "additionalProperties": false,
-      "required": ["name", "stylesheet", "version", "is_child_theme", "parent_name", "parent_version", "update_available", "new_version"],
+      "required": ["name", "stylesheet", "version", "is_child_theme", "parent_name", "parent_version", "update_cache_available", "update_cache_checked_at", "update_available", "new_version"],
       "properties": {
         "name": { "type": "string" }, "stylesheet": { "type": "string" }, "version": { "type": "string" },
         "is_child_theme": { "type": "boolean" }, "parent_name": { "$ref": "#/definitions/nullableString" },
-        "parent_version": { "$ref": "#/definitions/nullableString" }, "update_available": { "type": "boolean" },
+        "parent_version": { "$ref": "#/definitions/nullableString" },
+        "update_cache_available": { "type": "boolean" }, "update_cache_checked_at": { "$ref": "#/definitions/nullableDateTime" },
+        "update_available": { "$ref": "#/definitions/nullableBoolean" },
         "new_version": { "$ref": "#/definitions/nullableString" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "update_cache_available": { "const": false } }, "required": ["update_cache_available"] },
+          "then": { "properties": { "update_cache_checked_at": { "type": "null" }, "update_available": { "type": "null" }, "new_version": { "type": "null" } } },
+          "else": { "properties": { "update_cache_checked_at": { "type": "string", "format": "date-time" }, "update_available": { "type": "boolean" } } }
+        }
+      ]
+    },
+    "activePluginList": {
+      "type": "object", "additionalProperties": false,
+      "required": ["count", "update_cache_available", "update_cache_checked_at", "plugins"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "update_cache_available": { "type": "boolean" },
+        "update_cache_checked_at": { "$ref": "#/definitions/nullableDateTime" },
+        "plugins": { "type": "array", "items": { "$ref": "#/definitions/activePluginSummary" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "update_cache_available": { "const": false } }, "required": ["update_cache_available"] },
+          "then": {
+            "properties": {
+              "update_cache_checked_at": { "type": "null" },
+              "plugins": { "items": { "properties": { "update_available": { "type": "null" } } } }
+            }
+          },
+          "else": {
+            "properties": {
+              "update_cache_checked_at": { "type": "string", "format": "date-time" },
+              "plugins": { "items": { "$ref": "#/definitions/pluginSummary" } }
+            }
+          }
+        }
+      ]
     },
     "pluginList": {
       "type": "object", "additionalProperties": false, "required": ["count", "plugins"],

@@ -19,18 +19,25 @@ final class ODSC_Collector_Plugins {
 	 * @return array<string, mixed>
 	 */
 	public function collect_active_plugins() {
-		$all_plugins = $this->get_all_plugins();
-		$active      = array_flip( (array) get_option( 'active_plugins', array() ) );
+		$all_plugins     = $this->get_all_plugins();
+		$active          = array_flip( (array) get_option( 'active_plugins', array() ) );
+		$updates         = get_site_transient( 'update_plugins' );
+		$cache_available = is_object( $updates ) && isset( $updates->last_checked ) && is_numeric( $updates->last_checked );
+		$note            = $cache_available
+			? __( '更新情報は既存のキャッシュのみを参照しています。', 'od-site-check' )
+			: __( '更新キャッシュを取得できないため、有効プラグインの更新有無は確認できませんでした。外部への再確認は行っていません。', 'od-site-check' );
 
 		return ODSC_Sanitizer::result(
 			'WP-07',
-			'collected',
+			$cache_available ? 'collected' : 'partial',
 			'wordpress_plugin_api',
 			array(
-				'count'   => count( $active ),
-				'plugins' => $this->format_plugins( array_intersect_key( $all_plugins, $active ) ),
+				'count'                   => count( $active ),
+				'update_cache_available'  => $cache_available,
+				'update_cache_checked_at' => $cache_available ? wp_date( DATE_RFC3339, (int) $updates->last_checked ) : null,
+				'plugins'                 => $this->format_plugins( array_intersect_key( $all_plugins, $active ), true, $updates, $cache_available ),
 			),
-			__( '更新情報は既存のキャッシュのみを参照しています。', 'od-site-check' )
+			$note
 		);
 	}
 
@@ -176,20 +183,21 @@ final class ODSC_Collector_Plugins {
 	 *
 	 * @param array<string, array<string, string>> $plugins        Plugin data keyed by file.
 	 * @param bool                                 $include_update Whether to include cached update details.
+	 * @param object|null                          $updates         Cached update data.
+	 * @param bool                                 $cache_available Whether the update cache is usable.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function format_plugins( $plugins, $include_update = true ) {
-		$updates = get_site_transient( 'update_plugins' );
-		$output  = array();
+	private function format_plugins( $plugins, $include_update = true, $updates = null, $cache_available = false ) {
+		$output = array();
 
 		foreach ( $plugins as $file => $data ) {
-			$update = $include_update && is_object( $updates ) && isset( $updates->response[ $file ] ) ? $updates->response[ $file ] : null;
+			$update = $include_update && $cache_available && is_object( $updates ) && isset( $updates->response[ $file ] ) ? $updates->response[ $file ] : null;
 
 			$output[] = array(
 				'name'             => isset( $data['Name'] ) ? $data['Name'] : '',
 				'identifier'       => $file,
 				'version'          => isset( $data['Version'] ) ? $data['Version'] : '',
-				'update_available' => null !== $update,
+				'update_available' => $include_update && ! $cache_available ? null : null !== $update,
 				'new_version'      => is_object( $update ) && isset( $update->new_version ) ? (string) $update->new_version : null,
 			);
 		}
