@@ -25,6 +25,7 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		$_REQUEST = array();
 		unset( $_SERVER['REQUEST_METHOD'] );
 		$this->set_admin_result( null );
+		$this->set_admin_exporter( null );
 
 		parent::tear_down();
 	}
@@ -138,6 +139,10 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 				$this->assertNull( $plugin['update_available'] );
 			}
 			$this->assertStringContainsString( '更新キャッシュを取得できない', $results['WP-07']['note'] );
+			foreach ( ODSC_Collector::manual_ids() as $manual_id ) {
+				$this->assertSame( 'manual_required', $results[ $manual_id ]['status'] );
+				$this->assertNull( $results[ $manual_id ]['value'] );
+			}
 			$this->assertTrue( $valid->isValid() );
 		} finally {
 			$this->restore_site_transient( 'update_themes', $theme_cache );
@@ -359,6 +364,151 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensures a subscriber cannot execute the real download handler.
+	 *
+	 * @return void
+	 */
+	public function test_unauthorized_user_cannot_execute_download_handler() {
+		$subscriber = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $subscriber );
+		$this->set_download_request( wp_create_nonce( 'odsc_download_result' ) );
+
+		$this->expectException( WPDieException::class );
+		$this->expectExceptionCode( 403 );
+		ODSC_Admin::get_instance()->handle_download();
+	}
+
+	/**
+	 * Ensures the real download handler rejects an invalid nonce.
+	 *
+	 * @return void
+	 */
+	public function test_download_handler_rejects_invalid_nonce() {
+		$administrator = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $administrator );
+		$this->set_download_request( 'invalid' );
+
+		$this->expectException( WPDieException::class );
+		ODSC_Admin::get_instance()->handle_download();
+	}
+
+	/**
+	 * Ensures a valid real download response contains JSON and safe headers.
+	 *
+	 * @return void
+	 */
+	public function test_download_handler_outputs_json_and_download_headers() {
+		$administrator = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $administrator );
+
+		$exporter = new ODSC_Test_Exporter();
+		$json     = $this->set_download_request( wp_create_nonce( 'odsc_download_result' ), $exporter );
+		$this->set_admin_exporter( $exporter );
+
+		$completed = false;
+		$body      = '';
+		ob_start();
+		try {
+			ODSC_Admin::get_instance()->handle_download();
+		} catch ( ODSC_Test_Download_Completed $exception ) {
+			$completed = true;
+		} finally {
+			$body = (string) ob_get_clean();
+		}
+
+		$host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+
+		$this->assertTrue( $completed );
+		$this->assertSame( $json, $body );
+		$this->assertContains( 'Content-Type: application/json; charset=utf-8', $exporter->download_headers );
+		$this->assertContains( 'X-Content-Type-Options: nosniff', $exporter->download_headers );
+		$this->assertContains( 'Content-Length: ' . strlen( $json ), $exporter->download_headers );
+		$this->assertMatchesRegularExpression(
+			'/Content-Disposition: attachment; filename="od-site-check-' . preg_quote( $host, '/' ) . '-\d{8}-\d{6}\.json"/',
+			implode( "\n", $exporter->download_headers )
+		);
+	}
+
+	/**
+	 * Ensures diagnosis does not change representative site content or settings.
+	 *
+	 * @return void
+	 */
+	public function test_diagnosis_does_not_change_site_data() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'   => '診断前のタイトル',
+				'post_content' => '診断前の本文',
+				'post_status'  => 'publish',
+			)
+		);
+
+		$options_before = array(
+			'blogname'       => get_option( 'blogname' ),
+			'show_on_front'  => get_option( 'show_on_front' ),
+			'posts_per_page' => get_option( 'posts_per_page' ),
+		);
+		$post_before    = get_post( $post_id, ARRAY_A );
+		$cron_before    = _get_cron_array();
+
+		( new ODSC_Collector() )->collect();
+
+		$this->assertSame( $options_before['blogname'], get_option( 'blogname' ) );
+		$this->assertSame( $options_before['show_on_front'], get_option( 'show_on_front' ) );
+		$this->assertSame( $options_before['posts_per_page'], get_option( 'posts_per_page' ) );
+		$this->assertSame( $post_before, get_post( $post_id, ARRAY_A ) );
+		$this->assertSame( $cron_before, _get_cron_array() );
+	}
+
+	/**
+	 * Ensures diagnosis does not persist results or temporary plugin data.
+	 *
+	 * @return void
+	 */
+	public function test_diagnosis_does_not_persist_plugin_data() {
+		global $wpdb;
+
+		$like   = '%' . $wpdb->esc_like( 'odsc' ) . '%';
+		$query  = $wpdb->prepare( "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The table name is a trusted WordPress property.
+		$before = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Test verifies that no options are persisted.
+
+		( new ODSC_Collector() )->collect();
+
+		$after = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Test verifies that no options are persisted.
+		$this->assertSame( $before, $after );
+	}
+
+	/**
+	 * Ensures deactivation and uninstall preserve unrelated site data.
+	 *
+	 * @return void
+	 */
+	public function test_deactivation_and_uninstall_are_safe() {
+		if ( ! function_exists( 'deactivate_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugin         = 'od-site-check/od-site-check.php';
+		$active_before  = get_option( 'active_plugins', array() );
+		$sentinel_value = '保持される設定値';
+		$post_id        = self::factory()->post->create( array( 'post_title' => '保持される投稿' ) );
+
+		update_option( 'odsc_test_unrelated_option', $sentinel_value );
+		update_option( 'active_plugins', array_unique( array_merge( $active_before, array( $plugin ) ) ) );
+
+		try {
+			deactivate_plugins( $plugin );
+			$this->assertFalse( is_plugin_active( $plugin ) );
+			$this->assertTrue( uninstall_plugin( $plugin ) );
+			$this->assertSame( $sentinel_value, get_option( 'odsc_test_unrelated_option' ) );
+			$this->assertSame( '保持される投稿', get_post( $post_id )->post_title );
+		} finally {
+			update_option( 'active_plugins', $active_before );
+			delete_option( 'odsc_test_unrelated_option' );
+		}
+	}
+
+	/**
 	 * Ensures WordPress capability checks distinguish administrators from subscribers.
 	 *
 	 * @return void
@@ -469,6 +619,39 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		$property = new ReflectionProperty( ODSC_Admin::class, 'result' );
 		$property->setAccessible( true );
 		$property->setValue( ODSC_Admin::get_instance(), $value );
+	}
+
+	/**
+	 * Sets the request-local exporter for handler tests.
+	 *
+	 * @param ODSC_Exporter|null $value Exporter instance.
+	 * @return void
+	 */
+	private function set_admin_exporter( $value ) {
+		$property = new ReflectionProperty( ODSC_Admin::class, 'exporter' );
+		$property->setAccessible( true );
+		$property->setValue( ODSC_Admin::get_instance(), $value );
+	}
+
+	/**
+	 * Prepares a signed download request.
+	 *
+	 * @param string             $nonce    Submitted nonce.
+	 * @param ODSC_Exporter|null $exporter Exporter used to encode and sign the payload.
+	 * @return string Encoded JSON body.
+	 */
+	private function set_download_request( $nonce, $exporter = null ) {
+		$exporter = $exporter ? $exporter : new ODSC_Exporter();
+		$json     = $exporter->encode( ( new ODSC_Collector() )->collect() );
+
+		$_POST    = array(
+			'odsc_payload'         => base64_encode( $json ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Mirrors the signed form transport.
+			'odsc_signature'       => $exporter->sign( $json ),
+			'_odsc_download_nonce' => $nonce,
+		);
+		$_REQUEST = array( '_odsc_download_nonce' => $nonce );
+
+		return $json;
 	}
 
 	/**

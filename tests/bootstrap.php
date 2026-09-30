@@ -19,6 +19,8 @@ tests_add_filter(
 	'muplugins_loaded',
 	static function () {
 		require dirname( __DIR__ ) . '/od-site-check.php';
+		require __DIR__ . '/support/class-odsc-test-download-completed.php';
+		require __DIR__ . '/support/class-odsc-test-exporter.php';
 	}
 );
 

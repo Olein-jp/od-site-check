@@ -35,6 +35,13 @@ final class ODSC_Admin {
 	private $error = null;
 
 	/**
+	 * Exporter used for signed JSON responses.
+	 *
+	 * @var ODSC_Exporter|null
+	 */
+	private $exporter = null;
+
+	/**
 	 * Gets the singleton instance.
 	 *
 	 * @return ODSC_Admin
@@ -145,7 +152,7 @@ final class ODSC_Admin {
 		$encoded   = isset( $_POST['odsc_payload'] ) ? sanitize_text_field( wp_unslash( $_POST['odsc_payload'] ) ) : '';
 		$signature = isset( $_POST['odsc_signature'] ) ? sanitize_text_field( wp_unslash( $_POST['odsc_signature'] ) ) : '';
 		$json      = base64_decode( $encoded, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decodes a signed JSON transport value.
-		$exporter  = new ODSC_Exporter();
+		$exporter  = $this->get_exporter();
 
 		if ( false === $json || ! $exporter->verify( $json, $signature ) ) {
 			wp_die( esc_html__( '診断結果を確認できませんでした。もう一度診断を実行してください。', 'od-site-check' ), '', array( 'response' => 400 ) );
@@ -259,7 +266,7 @@ final class ODSC_Admin {
 			}
 		}
 
-		$exporter  = new ODSC_Exporter();
+		$exporter  = $this->get_exporter();
 		$json      = $exporter->encode( $result );
 		$labels    = ODSC_Collector::item_labels();
 		$guidance  = $this->get_interview_guidance();
@@ -440,5 +447,18 @@ final class ODSC_Admin {
 				'example'     => __( '平日日中は制作会社へ連絡。営業時間外の対応はなし', 'od-site-check' ),
 			),
 		);
+	}
+
+	/**
+	 * Gets the request-local exporter instance.
+	 *
+	 * @return ODSC_Exporter
+	 */
+	private function get_exporter() {
+		if ( null === $this->exporter ) {
+			$this->exporter = new ODSC_Exporter();
+		}
+
+		return $this->exporter;
 	}
 }

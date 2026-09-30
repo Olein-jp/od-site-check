@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Exports diagnostic results without writing them to a public file.
  */
-final class ODSC_Exporter {
+class ODSC_Exporter {
 	/**
 	 * Encodes a diagnostic payload.
 	 *
@@ -88,12 +88,40 @@ final class ODSC_Exporter {
 		$filename = $this->get_filename();
 
 		nocache_headers();
-		header( 'Content-Type: application/json; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-		header( 'X-Content-Type-Options: nosniff' );
-		header( 'Content-Length: ' . strlen( $json ) );
+		$this->send_download_headers(
+			array(
+				'Content-Type: application/json; charset=utf-8',
+				'Content-Disposition: attachment; filename="' . $filename . '"',
+				'X-Content-Type-Options: nosniff',
+				'Content-Length: ' . strlen( $json ),
+			)
+		);
 
 		echo $json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Signed JSON download, not HTML.
+		$this->terminate_download();
+	}
+
+	/**
+	 * Sends the download-specific response headers.
+	 *
+	 * Kept separate from download() so integration tests can capture the exact
+	 * response without weakening request authorization or signature checks.
+	 *
+	 * @param string[] $headers Header lines.
+	 * @return void
+	 */
+	protected function send_download_headers( $headers ) {
+		foreach ( $headers as $header ) {
+			header( $header );
+		}
+	}
+
+	/**
+	 * Ends the request after the download body has been sent.
+	 *
+	 * @return void
+	 */
+	protected function terminate_download() {
 		exit;
 	}
 
