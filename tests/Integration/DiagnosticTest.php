@@ -70,6 +70,33 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensures search engine visibility only reflects the WordPress option.
+	 *
+	 * @return void
+	 */
+	public function test_search_engine_visibility_explains_its_limited_scope() {
+		$blog_public = get_option( 'blog_public' );
+
+		try {
+			update_option( 'blog_public', '1' );
+			$visible = ( new ODSC_Collector_Settings() )->collect_reading_settings();
+
+			$this->assertTrue( $visible['value']['search_engine_visible'] );
+			$this->assertStringContainsString( 'WordPress設定が無効', $visible['note'] );
+			$this->assertStringContainsString( 'インデックス済みかどうか', $visible['note'] );
+			$this->assertStringContainsString( 'SEO評価は確認していません', $visible['note'] );
+
+			update_option( 'blog_public', '0' );
+			$hidden = ( new ODSC_Collector_Settings() )->collect_reading_settings();
+
+			$this->assertFalse( $hidden['value']['search_engine_visible'] );
+			$this->assertSame( $visible['note'], $hidden['note'] );
+		} finally {
+			update_option( 'blog_public', $blog_public );
+		}
+	}
+
+	/**
 	 * Ensures the export filename contains a safe site domain and timestamp.
 	 *
 	 * @return void

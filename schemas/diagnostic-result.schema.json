@@ -162,7 +162,7 @@
         },
         {
           "if": { "properties": { "id": { "const": "WP-15" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
-          "then": { "properties": { "value": { "$ref": "#/definitions/wp15" } } }
+          "then": { "properties": { "value": { "$ref": "#/definitions/wp15" }, "note": { "type": "string", "minLength": 1 } } }
         },
         {
           "if": { "properties": { "id": { "const": "OPS-03" }, "status": { "const": "collected" } }, "required": ["id", "status"] },

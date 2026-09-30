@@ -52,7 +52,8 @@ final class ODSC_Collector_Settings {
 				'front_page_configured' => 'page' === $show_on_front && 0 < (int) get_option( 'page_on_front', 0 ),
 				'posts_page_configured' => 'page' === $show_on_front && 0 < (int) get_option( 'page_for_posts', 0 ),
 				'search_engine_visible' => (bool) get_option( 'blog_public', true ),
-			)
+			),
+			__( 'search_engine_visibleがtrueの場合も、検索エンジンによるインデックスを抑制するWordPress設定が無効であることだけを意味します。検索エンジンへの登録、クロール、インデックス済みかどうか、検索順位、SEO評価は確認していません。', 'od-site-check' )
 		);
 	}
 }
