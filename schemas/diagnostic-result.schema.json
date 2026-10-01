@@ -55,7 +55,7 @@
         "identifier": { "type": "string" },
         "version": { "type": "string" },
         "activation_state": { "const": "inactive" },
-        "update_available": { "type": "boolean" },
+        "update_available": { "$ref": "#/definitions/nullableBoolean" },
         "new_version": { "$ref": "#/definitions/nullableString" }
       }
     },
@@ -153,7 +153,7 @@
           "then": { "properties": { "value": { "$ref": "#/definitions/activePluginList" } } }
         },
         {
-          "if": { "properties": { "id": { "const": "WP-08" }, "status": { "const": "collected" } }, "required": ["id", "status"] },
+          "if": { "properties": { "id": { "const": "WP-08" }, "status": { "enum": ["collected", "partial"] } }, "required": ["id", "status"] },
           "then": { "properties": { "value": { "$ref": "#/definitions/pluginList" } } }
         },
         {
@@ -312,8 +312,38 @@
       ]
     },
     "pluginList": {
-      "type": "object", "additionalProperties": false, "required": ["count", "plugins"],
-      "properties": { "count": { "type": "integer", "minimum": 0 }, "plugins": { "type": "array", "items": { "$ref": "#/definitions/inactivePluginSummary" } } }
+      "type": "object", "additionalProperties": false,
+      "required": ["count", "update_cache_available", "update_cache_checked_at", "plugins"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "update_cache_available": { "type": "boolean" },
+        "update_cache_checked_at": { "$ref": "#/definitions/nullableDateTime" },
+        "plugins": { "type": "array", "items": { "$ref": "#/definitions/inactivePluginSummary" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "update_cache_available": { "const": false } }, "required": ["update_cache_available"] },
+          "then": {
+            "properties": {
+              "update_cache_checked_at": { "type": "null" },
+              "plugins": { "items": { "properties": { "update_available": { "type": "null" }, "new_version": { "type": "null" } } } }
+            }
+          },
+          "else": {
+            "properties": {
+              "update_cache_checked_at": { "type": "string", "format": "date-time" },
+              "plugins": {
+                "items": {
+                  "allOf": [
+                    { "$ref": "#/definitions/inactivePluginSummary" },
+                    { "properties": { "update_available": { "type": "boolean" } } }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "wp09": {
       "type": "object", "additionalProperties": false,

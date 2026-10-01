@@ -47,18 +47,26 @@ final class ODSC_Collector_Plugins {
 	 * @return array<string, mixed>
 	 */
 	public function collect_inactive_plugins() {
-		$all_plugins = $this->get_all_plugins();
-		$active      = array_flip( (array) get_option( 'active_plugins', array() ) );
-		$inactive    = array_diff_key( $all_plugins, $active );
+		$all_plugins     = $this->get_all_plugins();
+		$active          = array_flip( (array) get_option( 'active_plugins', array() ) );
+		$inactive        = array_diff_key( $all_plugins, $active );
+		$updates         = get_site_transient( 'update_plugins' );
+		$cache_available = is_object( $updates ) && isset( $updates->last_checked ) && is_numeric( $updates->last_checked );
+		$note            = $cache_available
+			? __( '更新情報は既存のキャッシュのみを参照しています。', 'od-site-check' )
+			: __( '更新キャッシュを取得できないため、無効プラグインの更新有無は確認できませんでした。外部への再確認は行っていません。', 'od-site-check' );
 
 		return ODSC_Sanitizer::result(
 			'WP-08',
-			'collected',
+			$cache_available ? 'collected' : 'partial',
 			'wordpress_plugin_api',
 			array(
-				'count'   => count( $inactive ),
-				'plugins' => $this->format_plugins( $inactive, 'inactive', false ),
-			)
+				'count'                   => count( $inactive ),
+				'update_cache_available'  => $cache_available,
+				'update_cache_checked_at' => $cache_available ? wp_date( DATE_RFC3339, (int) $updates->last_checked ) : null,
+				'plugins'                 => $this->format_plugins( $inactive, 'inactive', true, $updates, $cache_available ),
+			),
+			$note
 		);
 	}
 

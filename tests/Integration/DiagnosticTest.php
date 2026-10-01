@@ -246,6 +246,15 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			}
 			$this->assertStringContainsString( '更新キャッシュを取得できない', $results['WP-07']['note'] );
 
+			$this->assertSame( 'partial', $results['WP-08']['status'] );
+			$this->assertFalse( $results['WP-08']['value']['update_cache_available'] );
+			$this->assertNull( $results['WP-08']['value']['update_cache_checked_at'] );
+			foreach ( $results['WP-08']['value']['plugins'] as $plugin ) {
+				$this->assertNull( $plugin['update_available'] );
+				$this->assertNull( $plugin['new_version'] );
+			}
+			$this->assertStringContainsString( '更新キャッシュを取得できない', $results['WP-08']['note'] );
+
 			$this->assertSame( 'partial', $results['WP-10']['status'] );
 			$this->assertFalse( $results['WP-10']['value']['required_update_caches_present'] );
 			$this->assertArrayNotHasKey( 'cache_complete', $results['WP-10']['value'] );
@@ -305,6 +314,26 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 				$this->assertFalse( $plugin['update_available'] );
 			}
 
+			update_option( 'active_plugins', array() );
+			$inactive_result  = ( new ODSC_Collector_Plugins() )->collect_inactive_plugins();
+			$inactive_plugins = array_combine(
+				wp_list_pluck( $inactive_result['value']['plugins'], 'identifier' ),
+				$inactive_result['value']['plugins']
+			);
+
+			$this->assertSame( 'collected', $inactive_result['status'] );
+			$this->assertTrue( $inactive_result['value']['update_cache_available'] );
+			$this->assertSame( wp_date( DATE_RFC3339, $checked_at ), $inactive_result['value']['update_cache_checked_at'] );
+			$this->assertArrayHasKey( $plugin_file, $inactive_plugins );
+			$this->assertFalse( $inactive_plugins[ $plugin_file ]['update_available'] );
+			$this->assertNull( $inactive_plugins[ $plugin_file ]['new_version'] );
+
+			$payload = ( new ODSC_Collector() )->collect();
+			$schema  = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+			$valid   = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
+
+			$this->assertTrue( $valid->isValid() );
+
 			$this->assertSame( 'collected', $pending_result['status'] );
 			$this->assertSame( 0, $pending_result['value']['core_updates_pending'] );
 			$this->assertSame( 0, $pending_result['value']['plugin_updates_pending'] );
@@ -323,6 +352,7 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			$plugin_update_cache->response[ $plugin_file ] = (object) array( 'new_version' => '99.0.0' );
 			set_site_transient( 'update_themes', $theme_update_cache );
 			set_site_transient( 'update_plugins', $plugin_update_cache );
+			update_option( 'active_plugins', array( $plugin_file ) );
 
 			$updated_theme  = ( new ODSC_Collector_Themes() )->collect_active_theme();
 			$updated_plugin = ( new ODSC_Collector_Plugins() )->collect_active_plugins();
@@ -333,6 +363,17 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			$this->assertSame( $plugin_result['value']['plugins'][0]['name'], $updated_plugin['value']['plugins'][0]['name'] );
 			$this->assertTrue( $updated_plugin['value']['plugins'][0]['update_available'] );
 			$this->assertSame( '99.0.0', $updated_plugin['value']['plugins'][0]['new_version'] );
+
+			update_option( 'active_plugins', array() );
+			$updated_inactive         = ( new ODSC_Collector_Plugins() )->collect_inactive_plugins();
+			$updated_inactive_plugins = array_combine(
+				wp_list_pluck( $updated_inactive['value']['plugins'], 'identifier' ),
+				$updated_inactive['value']['plugins']
+			);
+
+			$this->assertArrayHasKey( $plugin_file, $updated_inactive_plugins );
+			$this->assertTrue( $updated_inactive_plugins[ $plugin_file ]['update_available'] );
+			$this->assertSame( '99.0.0', $updated_inactive_plugins[ $plugin_file ]['new_version'] );
 		} finally {
 			update_option( 'active_plugins', $active_plugins );
 			$this->restore_site_transient( 'update_core', $core_cache );
