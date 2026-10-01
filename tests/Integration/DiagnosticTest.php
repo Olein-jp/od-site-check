@@ -126,13 +126,92 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$items   = ( new ODSC_Collector() )->collect()['results'];
-		$results = array_combine( wp_list_pluck( $items, 'id' ), $items );
+		$payload    = ( new ODSC_Collector() )->collect();
+		$items      = $payload['results'];
+		$ids        = wp_list_pluck( $items, 'id' );
+		$results    = array_combine( $ids, $items );
+		$schema     = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+		$validation = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
 
 		$this->assertSame( 'error', $results['WP-01']['status'] );
+		$this->assertNull( $results['WP-01']['value'] );
 		$this->assertSame( 'collector_failed', $results['WP-01']['error_code'] );
 		$this->assertStringNotContainsString( 'Sensitive internal detail', wp_json_encode( $results['WP-01'] ) );
+		$this->assertCount( 22, $ids );
+		$this->assertSame( ODSC_Collector::expected_ids(), $ids );
 		$this->assertNotSame( 'error', $results['WP-02']['status'] );
+		$this->assertTrue( $validation->isValid() );
+	}
+
+	/**
+	 * Ensures status-specific value and error code rules are enforced by the schema.
+	 *
+	 * @return void
+	 */
+	public function test_schema_rejects_invalid_status_field_combinations() {
+		$payload = ( new ODSC_Collector() )->collect();
+		$schema  = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+		$ids     = wp_list_pluck( $payload['results'], 'id' );
+
+		$invalid_cases = array(
+			array(
+				'id'         => 'WP-01',
+				'status'     => 'error',
+				'value'      => array( 'version' => '7.1' ),
+				'error_code' => 'collector_failed',
+			),
+			array(
+				'id'         => 'WP-01',
+				'status'     => 'error',
+				'value'      => null,
+				'error_code' => null,
+			),
+			array(
+				'id'         => 'WP-01',
+				'status'     => 'unavailable',
+				'value'      => null,
+				'error_code' => null,
+			),
+			array(
+				'id'         => 'WP-01',
+				'status'     => 'collected',
+				'error_code' => 'unexpected_error',
+			),
+			array(
+				'id'         => 'WP-03',
+				'status'     => 'partial',
+				'error_code' => 'unexpected_error',
+			),
+			array(
+				'id'         => 'OPS-01',
+				'status'     => 'manual_required',
+				'error_code' => 'unexpected_error',
+			),
+			array(
+				'id'         => 'WP-01',
+				'status'     => 'unsupported',
+				'value'      => null,
+				'note'       => 'Unsupported test environment.',
+				'error_code' => 'unexpected_error',
+			),
+		);
+
+		foreach ( $invalid_cases as $invalid_case ) {
+			$invalid_payload = $payload;
+			$index           = array_search( $invalid_case['id'], $ids, true );
+
+			$this->assertNotFalse( $index );
+			unset( $invalid_case['id'] );
+
+			$invalid_payload['results'][ $index ] = array_merge(
+				$invalid_payload['results'][ $index ],
+				$invalid_case
+			);
+
+			$validation = ( new Validator() )->validate( json_decode( wp_json_encode( $invalid_payload ) ), $schema );
+
+			$this->assertFalse( $validation->isValid() );
+		}
 	}
 
 	/**

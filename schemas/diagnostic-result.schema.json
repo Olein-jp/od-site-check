@@ -92,17 +92,33 @@
           "enum": ["WP-01", "WP-02", "WP-03", "WP-04", "WP-07", "WP-08", "WP-09", "WP-10", "WP-11", "WP-12", "WP-13", "WP-15", "OPS-01", "OPS-03", "OPS-04", "OPS-05", "OPS-10", "OPS-11", "OPS-12", "OPS-14", "OPS-18", "OPS-19"]
         },
         "status": {
+          "description": "Information collection status, not an assessment of site quality or safety: collected means the defined automatic scope was collected; partial means collection is incomplete; manual_required means human confirmation is required; unavailable means a supported collector could not access its prerequisite; unsupported means the environment is outside the supported scope; error means an unexpected item-level collection failure occurred.",
           "enum": ["collected", "partial", "manual_required", "unavailable", "unsupported", "error"]
         },
         "source": { "type": ["string", "null"] },
         "value": { "type": ["object", "null"] },
         "note": { "$ref": "#/definitions/nullableString" },
-        "error_code": { "$ref": "#/definitions/nullableString" }
+        "error_code": {
+          "description": "Stable machine-readable reason for unavailable or error results; otherwise null at the item level.",
+          "type": ["string", "null"]
+        }
       },
       "allOf": [
         {
           "if": { "properties": { "status": { "enum": ["manual_required", "unavailable", "unsupported", "error"] } } },
           "then": { "properties": { "value": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["error", "unavailable"] } } },
+          "then": { "properties": { "error_code": { "type": "string", "minLength": 1 } } }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["collected", "partial", "manual_required", "unsupported"] } } },
+          "then": { "properties": { "error_code": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "unsupported" } } },
+          "then": { "properties": { "note": { "type": "string", "minLength": 1 } } }
         },
         {
           "if": { "properties": { "id": { "enum": ["OPS-01", "OPS-10", "OPS-12", "OPS-14", "OPS-18", "OPS-19"] } }, "required": ["id"] },
