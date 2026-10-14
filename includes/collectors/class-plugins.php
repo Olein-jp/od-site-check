@@ -26,6 +26,7 @@ final class ODSC_Collector_Plugins {
 		$note            = $cache_available
 			? __( '更新情報は既存のキャッシュのみを参照しています。', 'od-site-check' )
 			: __( '更新キャッシュを取得できないため、有効プラグインの更新有無は確認できませんでした。外部への再確認は行っていません。', 'od-site-check' );
+		$note           .= ' ' . $this->compatibility_note();
 
 		return ODSC_Sanitizer::result(
 			'WP-07',
@@ -55,6 +56,7 @@ final class ODSC_Collector_Plugins {
 		$note            = $cache_available
 			? __( '更新情報は既存のキャッシュのみを参照しています。', 'od-site-check' )
 			: __( '更新キャッシュを取得できないため、無効プラグインの更新有無は確認できませんでした。外部への再確認は行っていません。', 'od-site-check' );
+		$note           .= ' ' . $this->compatibility_note();
 
 		return ODSC_Sanitizer::result(
 			'WP-08',
@@ -200,7 +202,8 @@ final class ODSC_Collector_Plugins {
 		$output = array();
 
 		foreach ( $plugins as $file => $data ) {
-			$update = $include_update && $cache_available && is_object( $updates ) && isset( $updates->response[ $file ] ) ? $updates->response[ $file ] : null;
+			$update               = $include_update && $cache_available && is_object( $updates ) && isset( $updates->response[ $file ] ) ? $updates->response[ $file ] : null;
+			$update_compatibility = $this->get_update_compatibility( $update, $updates );
 
 			$output[] = array(
 				'name'             => isset( $data['Name'] ) ? $data['Name'] : '',
@@ -208,11 +211,108 @@ final class ODSC_Collector_Plugins {
 				'version'          => isset( $data['Version'] ) ? $data['Version'] : '',
 				'activation_state' => $activation_state,
 				'update_available' => $include_update && ! $cache_available ? null : null !== $update,
-				'new_version'      => is_object( $update ) && isset( $update->new_version ) ? (string) $update->new_version : null,
+				'new_version'      => null !== $update_compatibility ? $update_compatibility['version'] : null,
+				'compatibility'    => array(
+					'installed' => array(
+						'version'      => isset( $data['Version'] ) ? $data['Version'] : '',
+						'requires_wp'  => $this->normalize_requirement( $data['RequiresWP'] ?? null ),
+						'requires_php' => $this->normalize_requirement( $data['RequiresPHP'] ?? null ),
+						'tested_wp'    => $this->get_installed_tested_wp( $file, $data['Version'] ?? '' ),
+						'tested_php'   => null,
+						'source'       => 'installed_plugin_headers_and_readme',
+						'checked_at'   => null,
+					),
+					'update'    => $update_compatibility,
+				),
 			);
 		}
 
 		return $output;
+	}
+
+	/**
+	 * 最低要件と動作確認情報の解釈を説明する。
+	 *
+	 * @return string
+	 */
+	private function compatibility_note() {
+		return __( '対応情報は作者の記載に基づき、動作保証ではありません。最低要件は対応上限ではなく、WPの動作確認済みバージョンを超える場合は事前検証が必要です。PHPの動作確認上限は不明のため提供元へ確認してください。更新先は保存済みキャッシュの情報であり、最新公開版の確認を意味しません。', 'od-site-check' );
+	}
+
+	/**
+	 * 明示された数値形式の要件・動作確認バージョンだけを採用する。
+	 *
+	 * @param mixed $value メタデータの値.
+	 * @return string|null
+	 */
+	private function normalize_requirement( $value ) {
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		$value = trim( $value );
+		return preg_match( '/^[0-9]+(?:\.[0-9]+)*$/D', $value ) ? $value : null;
+	}
+
+	/**
+	 * インストール済みプラグインの同梱readmeから作者の記載を取得する。
+	 *
+	 * @param string $file    プラグイン識別子.
+	 * @param string $version インストール済みバージョン.
+	 * @return string|null
+	 */
+	private function get_installed_tested_wp( $file, $version ) {
+		$directory = dirname( $file );
+		if ( '.' === $directory || 0 !== validate_file( $file ) ) {
+			return null;
+		}
+
+		$readme = WP_PLUGIN_DIR . '/' . $directory . '/readme.txt';
+		if ( ! is_file( $readme ) || ! is_readable( $readme ) ) {
+			return null;
+		}
+
+		$headers = get_file_data(
+			$readme,
+			array(
+				'tested' => 'Tested up to',
+				'stable' => 'Stable tag',
+			)
+		);
+		$stable  = trim( $headers['stable'] );
+		if ( '' !== $stable && 'trunk' !== strtolower( $stable ) && $stable !== $version ) {
+			return null;
+		}
+
+		return $this->normalize_requirement( $headers['tested'] );
+	}
+
+	/**
+	 * 更新先の版を特定できる場合だけ、キャッシュの対応情報を返す。
+	 *
+	 * @param mixed       $update  プラグインの更新情報.
+	 * @param object|null $updates 更新キャッシュ.
+	 * @return array<string, mixed>|null
+	 */
+	private function get_update_compatibility( $update, $updates ) {
+		if ( ! is_object( $update ) || ! isset( $update->new_version ) || ! is_string( $update->new_version ) ) {
+			return null;
+		}
+
+		$version = trim( $update->new_version );
+		if ( ! preg_match( '/^[0-9]+(?:\.[0-9]+)*(?:[-+][0-9A-Za-z.-]+)?$/D', $version ) ) {
+			return null;
+		}
+
+		return array(
+			'version'      => $version,
+			'requires_wp'  => $this->normalize_requirement( $update->requires ?? null ),
+			'requires_php' => $this->normalize_requirement( $update->requires_php ?? null ),
+			'tested_wp'    => $this->normalize_requirement( $update->tested ?? null ),
+			'tested_php'   => null,
+			'source'       => 'wordpress_update_cache',
+			'checked_at'   => wp_date( DATE_RFC3339, (int) $updates->last_checked ),
+		);
 	}
 
 	/**

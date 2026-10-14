@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.0.json",
+  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.1.json",
   "title": "OD Site Check diagnostic result",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "collector", "collected_at", "site", "results"],
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "collector": {
       "type": "object",
       "additionalProperties": false,
@@ -46,30 +46,73 @@
         { "type": "null" }
       ]
     },
+    "pluginCompatibility": {
+      "type": "object", "additionalProperties": false,
+      "required": ["installed", "update"],
+      "properties": {
+        "installed": {
+          "allOf": [
+            { "$ref": "#/definitions/pluginCompatibilityVersion" },
+            { "properties": { "source": { "const": "installed_plugin_headers_and_readme" }, "checked_at": { "type": "null" } } }
+          ]
+        },
+        "update": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "allOf": [
+                { "$ref": "#/definitions/pluginCompatibilityVersion" },
+                { "properties": { "version": { "minLength": 1 }, "source": { "const": "wordpress_update_cache" }, "checked_at": { "type": "string", "format": "date-time" } } }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "pluginCompatibilityVersion": {
+      "description": "作者が記載した最低要件とWP動作確認情報。動作保証や対応上限を示すものではない。更新先は保存済みキャッシュの情報であり、最新公開版の確認ではない。",
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "requires_wp", "requires_php", "tested_wp", "tested_php", "source", "checked_at"],
+      "properties": {
+        "version": { "type": "string" },
+        "requires_wp": { "$ref": "#/definitions/documentedVersion" },
+        "requires_php": { "$ref": "#/definitions/documentedVersion" },
+        "tested_wp": { "$ref": "#/definitions/documentedVersion" },
+        "tested_php": { "description": "PHPの動作確認上限は標準メタデータから取得できないため不明。提供元への確認が必要。", "type": "null" },
+        "source": { "enum": ["installed_plugin_headers_and_readme", "wordpress_update_cache"] },
+        "checked_at": { "$ref": "#/definitions/nullableDateTime" }
+      }
+    },
+    "documentedVersion": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]+(?:\\.[0-9]+)*$"
+    },
     "inactivePluginSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version"],
+      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version", "compatibility"],
       "properties": {
         "name": { "type": "string" },
         "identifier": { "type": "string" },
         "version": { "type": "string" },
         "activation_state": { "const": "inactive" },
         "update_available": { "$ref": "#/definitions/nullableBoolean" },
-        "new_version": { "$ref": "#/definitions/nullableString" }
+        "new_version": { "$ref": "#/definitions/nullableString" },
+        "compatibility": { "$ref": "#/definitions/pluginCompatibility" }
       }
     },
     "activePluginSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version"],
+      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version", "compatibility"],
       "properties": {
         "name": { "type": "string" },
         "identifier": { "type": "string" },
         "version": { "type": "string" },
         "activation_state": { "const": "active" },
         "update_available": { "$ref": "#/definitions/nullableBoolean" },
-        "new_version": { "$ref": "#/definitions/nullableString" }
+        "new_version": { "$ref": "#/definitions/nullableString" },
+        "compatibility": { "$ref": "#/definitions/pluginCompatibility" }
       }
     },
     "detectedPlugin": {
