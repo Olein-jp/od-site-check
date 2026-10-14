@@ -3,7 +3,7 @@ Contributors: olein
 Requires at least: 7.1
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,12 @@ OD Site Checkは、オレインデザインによるWordPress運用・改善診�
 初期版では対応していません。マルチサイトを検出した場合は、対象項目を未対応として記録します。
 
 == Changelog ==
+
+= 0.2.0 =
+
+* 有効・無効プラグインの WP・PHP 最低要件と WP 動作確認情報を診断 JSON に追加。
+* JSON Schema を 1.1 に更新。
+* GitHub Releases でインストール用 ZIP をバージョンごとに配布。
 
 = 0.1.0 =
 

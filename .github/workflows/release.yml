@@ -1,0 +1,57 @@
+name: プラグインのリリース
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: インストール用 ZIP を公開
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: タグのソースを取得
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: バージョン表記を検証
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node bin/verify-release-version.mjs "$RELEASE_TAG"
+
+      - name: 配布 ZIP を作成・検証
+        run: |
+          sh bin/build-zip.sh
+          sh bin/verify-zip.sh
+
+      - name: チェックサムを作成
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        working-directory: build
+        run: |
+          version="${RELEASE_TAG#v}"
+          sha256sum "od-site-check-$version.zip" > "od-site-check-$version.zip.sha256"
+
+      - name: GitHub Releases に公開
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          gh release create "$RELEASE_TAG" \
+            "build/od-site-check-$version.zip" \
+            "build/od-site-check-$version.zip.sha256" \
+            --verify-tag \
+            --title "OD Site Check $version" \
+            --generate-notes \
+            --notes 'Assets の od-site-check-*.zip をダウンロードし、WordPress の「プラグイン > 新規プラグインを追加 > プラグインのアップロード」からインストールしてください。Source code の ZIP はインストール用配布物ではありません。対応環境と変更内容は同梱 README・readme.txt をご確認ください。'

@@ -56,7 +56,7 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 
 ## 利用方法
 
-1. 配布ZIPをWordPressへインストールして有効化します。
+1. [最新リリース](https://github.com/Olein-jp/od-site-check/releases/latest) の Assets から `od-site-check-[バージョン].zip` をダウンロードし、WordPressへアップロードして有効化します。GitHub が自動表示する Source code の ZIP は使用しません。
 2. 「ツール > OD サイト診断」を開きます。
 3. 収集内容を確認して「サイトの状態を確認する」を押します。
 4. 項目別の取得状況と、ヒアリング前の確認事項を確認します。
@@ -89,7 +89,7 @@ npm run verify:zip
 npm run env:stop
 ```
 
-JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.1.0.zip` に生成されます。
+JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.2.0.zip` に生成されます。
 
 ### 対応環境の検証
 
@@ -111,3 +111,15 @@ npm run test:smoke
 互換性テストとZIP導入テストは専用のDocker環境を使用するため、初回はWordPressやPHPイメージの取得に時間がかかることがあります。ZIP導入テストの専用環境は、テスト終了時に破棄されます。
 
 配布対象は `bin/package-files.txt` の許可リストで管理しています。`npm run verify:zip` はZIPの破損に加え、テスト、開発用コマンド、`vendor`、`node_modules`、`.env`、Git管理情報が含まれていないことも検査します。
+
+## バージョン別の配布
+
+[GitHub Releases](https://github.com/Olein-jp/od-site-check/releases) に、各バージョンのインストール用 ZIP と SHA-256 チェックサムを保存します。過去のリリースは残し、通常は [最新リリース](https://github.com/Olein-jp/od-site-check/releases/latest) からダウンロードしてください。
+
+開発者は変更を main に取り込んだ後、プラグインヘッダー・`ODSC_VERSION`・readme の Stable tag・package.json・package-lock.json のバージョンを揃えたコミットに `vX.Y.Z` タグを付け、origin に push します。GitHub Actions がバージョン一致、ZIP の整合性、配布ファイルの許可リストを検証した後にリリースを公開します。既存のタグ・リリースは上書きせず、修正時は新しいバージョンを公開してください。公開前の静的チェックと WordPress 上の動作確認は開発者が実行します。
+
+```sh
+node bin/verify-release-version.mjs v0.2.0
+git tag v0.2.0
+git push origin v0.2.0
+```
