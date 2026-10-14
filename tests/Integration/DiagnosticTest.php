@@ -415,6 +415,197 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * 現在版の要件、同梱readme、不明値を有効・無効の両方で確認する。
+	 *
+	 * @return void
+	 */
+	public function test_installed_plugin_compatibility_uses_headers_and_bundled_readme() {
+		$plugin_cache = wp_cache_get( 'plugins', 'plugins' );
+		$active       = get_option( 'active_plugins', array() );
+		$updates      = get_site_transient( 'update_plugins' );
+		$fixture      = 'od-site-check/tests/fixtures/plugin-compatibility/plugin.php';
+		$invalid      = 'od-site-check/tests/fixtures/plugin-compatibility-invalid/plugin.php';
+		$missing      = 'od-site-check/tests/fixtures/missing-readme/plugin.php';
+		$root         = 'odsc-fixture.php';
+		$metadata     = array(
+			'Name'        => '対応情報テスト用',
+			'Version'     => '1.2.3',
+			'RequiresWP'  => ' 6.9 ',
+			'RequiresPHP' => '7.4',
+		);
+
+		try {
+			delete_site_transient( 'update_plugins' );
+			foreach ( array( 'active', 'inactive' ) as $state ) {
+				wp_cache_set( 'plugins', array( '' => array( $fixture => $metadata ) ), 'plugins' );
+				update_option( 'active_plugins', 'active' === $state ? array( $fixture ) : array() );
+				$method = 'collect_' . $state . '_plugins';
+				$result = ( new ODSC_Collector_Plugins() )->$method();
+				$plugin = $result['value']['plugins'][0];
+
+				$this->assertSame( $state, $plugin['activation_state'] );
+				$this->assertSame(
+					array(
+						'version'      => '1.2.3',
+						'requires_wp'  => '6.9',
+						'requires_php' => '7.4',
+						'tested_wp'    => '7.1',
+						'tested_php'   => null,
+						'source'       => 'installed_plugin_headers_and_readme',
+						'checked_at'   => null,
+					),
+					$plugin['compatibility']['installed']
+				);
+				$this->assertNull( $plugin['compatibility']['update'] );
+				$this->assertNull( $plugin['update_available'] );
+				$this->assertStringContainsString( '動作保証ではありません', $result['note'] );
+				$this->assertStringContainsString( '事前検証が必要', $result['note'] );
+
+				wp_cache_set( 'plugins', array( '' => array( $invalid => $metadata ) ), 'plugins' );
+				update_option( 'active_plugins', 'active' === $state ? array( $invalid ) : array() );
+				$result = ( new ODSC_Collector_Plugins() )->$method();
+				$this->assertNull( $result['value']['plugins'][0]['compatibility']['installed']['tested_wp'] );
+
+				$unknown = array(
+					'Name'    => '情報なし',
+					'Version' => '9.0',
+				);
+				wp_cache_set(
+					'plugins',
+					array(
+						'' => array(
+							$fixture => $unknown,
+							$missing => $unknown,
+							$root    => $unknown,
+						),
+					),
+					'plugins'
+				);
+				update_option( 'active_plugins', 'active' === $state ? array( $fixture, $missing, $root ) : array() );
+				$result = ( new ODSC_Collector_Plugins() )->$method();
+				$this->assertCount( 3, $result['value']['plugins'] );
+				foreach ( $result['value']['plugins'] as $plugin ) {
+					$this->assertNull( $plugin['compatibility']['installed']['requires_wp'] );
+					$this->assertNull( $plugin['compatibility']['installed']['requires_php'] );
+					$this->assertNull( $plugin['compatibility']['installed']['tested_wp'] );
+				}
+
+				$unknown['RequiresWP']  = '6.9 or later';
+				$unknown['RequiresPHP'] = array( '8.3' );
+				wp_cache_set( 'plugins', array( '' => array( $fixture => $unknown ) ), 'plugins' );
+				update_option( 'active_plugins', 'active' === $state ? array( $fixture ) : array() );
+				$result = ( new ODSC_Collector_Plugins() )->$method();
+				$this->assertNull( $result['value']['plugins'][0]['compatibility']['installed']['requires_wp'] );
+				$this->assertNull( $result['value']['plugins'][0]['compatibility']['installed']['requires_php'] );
+			}
+		} finally {
+			wp_cache_set( 'plugins', $plugin_cache, 'plugins' );
+			update_option( 'active_plugins', $active );
+			$this->restore_site_transient( 'update_plugins', $updates );
+		}
+	}
+
+	/**
+	 * 更新先の情報を現在版と混同せず、不明値と取得元を保存する。
+	 *
+	 * @return void
+	 */
+	public function test_cached_plugin_compatibility_keeps_versions_separate() {
+		$plugin_cache = wp_cache_get( 'plugins', 'plugins' );
+		$active       = get_option( 'active_plugins', array() );
+		$updates      = get_site_transient( 'update_plugins' );
+		$file         = 'od-site-check/tests/fixtures/plugin-compatibility/plugin.php';
+		$metadata     = array(
+			'Name'        => '対応情報テスト用',
+			'Version'     => '1.2.3',
+			'RequiresWP'  => '6.9',
+			'RequiresPHP' => '7.4',
+		);
+		$cases        = array(
+			array( null, null ),
+			array(
+				(object) array(
+					'new_version'  => '2.0.0',
+					'requires'     => '7.0',
+					'requires_php' => '8.3',
+					'tested'       => '7.2',
+				),
+				array( '2.0.0', '7.0', '8.3', '7.2' ),
+			),
+			array( (object) array( 'new_version' => '2.0.0' ), array( '2.0.0', null, null, null ) ),
+			array(
+				(object) array(
+					'new_version'  => '2.0.0-beta.1',
+					'requires'     => array( '7.0' ),
+					'requires_php' => '',
+					'tested'       => 'unknown',
+				),
+				array( '2.0.0-beta.1', null, null, null ),
+			),
+			array( (object) array( 'tested' => '7.2' ), null ),
+			array(
+				(object) array(
+					'new_version' => array( '2.0.0' ),
+					'tested'      => '7.2',
+				),
+				null,
+			),
+			array(
+				(object) array(
+					'new_version' => 'latest',
+					'tested'      => '7.2',
+				),
+				null,
+			),
+		);
+
+		try {
+			foreach ( array( 'active', 'inactive' ) as $state ) {
+				wp_cache_set( 'plugins', array( '' => array( $file => $metadata ) ), 'plugins' );
+				update_option( 'active_plugins', 'active' === $state ? array( $file ) : array() );
+				foreach ( $cases as $case ) {
+					$cache = (object) array(
+						'last_checked' => 1700000000,
+						'response'     => null === $case[0] ? array() : array( $file => $case[0] ),
+					);
+					set_site_transient( 'update_plugins', $cache );
+					$method = 'collect_' . $state . '_plugins';
+					$result = ( new ODSC_Collector_Plugins() )->$method();
+					$plugin = $result['value']['plugins'][0];
+					$this->assertSame( '1.2.3', $plugin['compatibility']['installed']['version'] );
+					$this->assertSame( '7.1', $plugin['compatibility']['installed']['tested_wp'] );
+					$this->assertSame( null !== $case[0], $plugin['update_available'] );
+					if ( null === $case[1] ) {
+						$this->assertNull( $plugin['compatibility']['update'] );
+						$this->assertNull( $plugin['new_version'] );
+					} else {
+						$this->assertSame(
+							array(
+								'version'      => $case[1][0],
+								'requires_wp'  => $case[1][1],
+								'requires_php' => $case[1][2],
+								'tested_wp'    => $case[1][3],
+								'tested_php'   => null,
+								'source'       => 'wordpress_update_cache',
+								'checked_at'   => $result['value']['update_cache_checked_at'],
+							),
+							$plugin['compatibility']['update']
+						);
+						$this->assertSame( $case[1][0], $plugin['new_version'] );
+					}
+					$schema = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- ローカルのSchemaを読む。
+					$valid  = ( new Validator() )->validate( json_decode( wp_json_encode( ( new ODSC_Collector() )->collect() ) ), $schema );
+					$this->assertTrue( $valid->isValid() );
+				}
+			}
+		} finally {
+			wp_cache_set( 'plugins', $plugin_cache, 'plugins' );
+			update_option( 'active_plugins', $active );
+			$this->restore_site_transient( 'update_plugins', $updates );
+		}
+	}
+
+	/**
 	 * Ensures WP-03 exposes only the fixed safe Site Health result fields.
 	 *
 	 * @return void
