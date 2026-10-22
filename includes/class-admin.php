@@ -163,6 +163,12 @@ final class ODSC_Admin {
 			wp_die( esc_html__( '診断結果の形式が正しくありません。', 'od-site-check' ), '', array( 'response' => 400 ) );
 		}
 
+		foreach ( $payload['results'] as $result ) {
+			if ( 'WP-11' === $result['id'] && isset( $result['value']['users'] ) && ! current_user_can( 'list_users' ) ) {
+				wp_die( esc_html__( 'アカウント一覧をダウンロードする権限がありません。', 'od-site-check' ), '', array( 'response' => 403 ) );
+			}
+		}
+
 		$exporter->download( $json );
 	}
 
@@ -207,7 +213,7 @@ final class ODSC_Admin {
 		?>
 		<div class="odsc-card">
 			<h2><?php esc_html_e( 'この診断について', 'od-site-check' ); ?></h2>
-			<p><?php esc_html_e( 'WordPressのバージョン、テーマ、プラグイン、設定、PHPやデータベースなど、サイト改善の検討に必要な情報を収集します。', 'od-site-check' ); ?></p>
+			<p><?php esc_html_e( 'WordPressのバージョン、テーマ、プラグイン、設定、PHPやデータベースなど、サイト改善の検討に必要な情報を収集します。ユーザー一覧の閲覧権限がある場合は、アカウント名（ログイン名）と権限グループも含みます。', 'od-site-check' ); ?></p>
 			<ul>
 				<li><?php esc_html_e( 'パスワード、APIキー、認証情報、ユーザーの氏名・メールアドレスは収集しません。', 'od-site-check' ); ?></li>
 				<li><?php esc_html_e( 'サイトの設定変更、更新、修復、削除、バックアップは行いません。', 'od-site-check' ); ?></li>

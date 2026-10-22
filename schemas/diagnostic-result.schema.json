@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.1.json",
+  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.2.json",
   "title": "OD Site Check diagnostic result",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "collector", "collected_at", "site", "results"],
   "properties": {
-    "schema_version": { "const": "1.1" },
+    "schema_version": { "const": "1.2" },
     "collector": {
       "type": "object",
       "additionalProperties": false,
@@ -90,29 +90,81 @@
     "inactivePluginSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version", "compatibility"],
+      "required": [
+        "name",
+        "identifier",
+        "version",
+        "activation_state",
+        "update_available",
+        "new_version",
+        "compatibility",
+        "auto_update_enabled"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "identifier": { "type": "string" },
-        "version": { "type": "string" },
-        "activation_state": { "const": "inactive" },
-        "update_available": { "$ref": "#/definitions/nullableBoolean" },
-        "new_version": { "$ref": "#/definitions/nullableString" },
-        "compatibility": { "$ref": "#/definitions/pluginCompatibility" }
+        "name": {
+          "type": "string"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "activation_state": {
+          "const": "inactive"
+        },
+        "update_available": {
+          "$ref": "#/definitions/nullableBoolean"
+        },
+        "new_version": {
+          "$ref": "#/definitions/nullableString"
+        },
+        "compatibility": {
+          "$ref": "#/definitions/pluginCompatibility"
+        },
+        "auto_update_enabled": {
+          "type": "boolean"
+        }
       }
     },
     "activePluginSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "identifier", "version", "activation_state", "update_available", "new_version", "compatibility"],
+      "required": [
+        "name",
+        "identifier",
+        "version",
+        "activation_state",
+        "update_available",
+        "new_version",
+        "compatibility",
+        "auto_update_enabled"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "identifier": { "type": "string" },
-        "version": { "type": "string" },
-        "activation_state": { "const": "active" },
-        "update_available": { "$ref": "#/definitions/nullableBoolean" },
-        "new_version": { "$ref": "#/definitions/nullableString" },
-        "compatibility": { "$ref": "#/definitions/pluginCompatibility" }
+        "name": {
+          "type": "string"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "activation_state": {
+          "const": "active"
+        },
+        "update_available": {
+          "$ref": "#/definitions/nullableBoolean"
+        },
+        "new_version": {
+          "$ref": "#/definitions/nullableString"
+        },
+        "compatibility": {
+          "$ref": "#/definitions/pluginCompatibility"
+        },
+        "auto_update_enabled": {
+          "type": "boolean"
+        }
       }
     },
     "detectedPlugin": {
@@ -302,21 +354,127 @@
       }
     },
     "wp04": {
-      "type": "object", "additionalProperties": false,
-      "required": ["name", "stylesheet", "version", "is_child_theme", "parent_name", "parent_version", "update_cache_available", "update_cache_checked_at", "update_available", "new_version"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "stylesheet",
+        "version",
+        "is_child_theme",
+        "parent_name",
+        "parent_version",
+        "update_cache_available",
+        "update_cache_checked_at",
+        "update_available",
+        "new_version",
+        "installed_themes"
+      ],
       "properties": {
-        "name": { "type": "string" }, "stylesheet": { "type": "string" }, "version": { "type": "string" },
-        "is_child_theme": { "type": "boolean" }, "parent_name": { "$ref": "#/definitions/nullableString" },
-        "parent_version": { "$ref": "#/definitions/nullableString" },
-        "update_cache_available": { "type": "boolean" }, "update_cache_checked_at": { "$ref": "#/definitions/nullableDateTime" },
-        "update_available": { "$ref": "#/definitions/nullableBoolean" },
-        "new_version": { "$ref": "#/definitions/nullableString" }
+        "name": {
+          "type": "string"
+        },
+        "stylesheet": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "is_child_theme": {
+          "type": "boolean"
+        },
+        "parent_name": {
+          "$ref": "#/definitions/nullableString"
+        },
+        "parent_version": {
+          "$ref": "#/definitions/nullableString"
+        },
+        "update_cache_available": {
+          "type": "boolean"
+        },
+        "update_cache_checked_at": {
+          "$ref": "#/definitions/nullableDateTime"
+        },
+        "update_available": {
+          "$ref": "#/definitions/nullableBoolean"
+        },
+        "new_version": {
+          "$ref": "#/definitions/nullableString"
+        },
+        "installed_themes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "stylesheet",
+              "version",
+              "is_active",
+              "parent_stylesheet",
+              "auto_update_enabled"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "stylesheet": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "is_active": {
+                "type": "boolean"
+              },
+              "parent_stylesheet": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "auto_update_enabled": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
       },
       "allOf": [
         {
-          "if": { "properties": { "update_cache_available": { "const": false } }, "required": ["update_cache_available"] },
-          "then": { "properties": { "update_cache_checked_at": { "type": "null" }, "update_available": { "type": "null" }, "new_version": { "type": "null" } } },
-          "else": { "properties": { "update_cache_checked_at": { "type": "string", "format": "date-time" }, "update_available": { "type": "boolean" } } }
+          "if": {
+            "properties": {
+              "update_cache_available": {
+                "const": false
+              }
+            },
+            "required": [
+              "update_cache_available"
+            ]
+          },
+          "then": {
+            "properties": {
+              "update_cache_checked_at": {
+                "type": "null"
+              },
+              "update_available": {
+                "type": "null"
+              },
+              "new_version": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "update_cache_checked_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "update_available": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       ]
     },
@@ -409,8 +567,58 @@
       }
     },
     "wp11": {
-      "type": "object", "additionalProperties": false, "required": ["total_users", "role_counts"],
-      "properties": { "total_users": { "type": "integer", "minimum": 0 }, "role_counts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_users",
+        "role_counts",
+        "users",
+        "users_error_code"
+      ],
+      "properties": {
+        "total_users": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "role_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "users": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "user_login",
+              "roles"
+            ],
+            "properties": {
+              "user_login": {
+                "type": "string"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "users_error_code": {
+          "enum": [
+            null,
+            "list_users_forbidden"
+          ]
+        }
+      }
     },
     "detectedPluginList": {
       "type": "object", "additionalProperties": false, "required": ["detected_plugins"],

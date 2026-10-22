@@ -12,6 +12,131 @@ use Opis\JsonSchema\Validator;
  */
 final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	/**
+	 * 保存値だけから通常プラグインと全テーマの自動更新設定を取得する。
+	 *
+	 * @return void
+	 */
+	public function test_saved_auto_update_settings() {
+		$plugins = get_plugins();
+		$files   = array_keys( $plugins );
+		$this->assertNotEmpty( $files );
+		update_site_option( 'auto_update_plugins', array( $files[0] ) );
+		$collector = new ODSC_Collector_Plugins();
+		foreach ( array( $collector->collect_active_plugins(), $collector->collect_inactive_plugins() ) as $result ) {
+			foreach ( $result['value']['plugins'] as $plugin ) {
+				$this->assertSame( $files[0] === $plugin['identifier'], $plugin['auto_update_enabled'] );
+			}
+		}
+		$themes = wp_get_themes();
+		$slugs  = array_keys( $themes );
+		update_site_option( 'auto_update_themes', array( $slugs[0] ) );
+		$result = ( new ODSC_Collector_Themes() )->collect_active_theme();
+		$this->assertCount( count( $themes ), $result['value']['installed_themes'] );
+		foreach ( $result['value']['installed_themes'] as $theme ) {
+			$this->assertSame( $slugs[0] === $theme['stylesheet'], $theme['auto_update_enabled'] );
+			$this->assertSame( get_stylesheet() === $theme['stylesheet'], $theme['is_active'] );
+			$installed = $themes[ $theme['stylesheet'] ];
+			$this->assertSame( $installed->get_template() === $theme['stylesheet'] ? null : $installed->get_template(), $theme['parent_stylesheet'] );
+		}
+	}
+
+	/**
+	 * 一覧には複数・独自・空のロールを含め、権限不足時は取得しない。
+	 *
+	 * @return void
+	 */
+	public function test_user_inventory_permissions_and_roles() {
+		add_role( 'odsc_custom', '診断用', array( 'read' => true ) );
+		try {
+			$id   = self::factory()->user->create(
+				array(
+					'user_login' => 'odsc-multi',
+					'role'       => 'subscriber',
+				)
+			);
+			$user = new WP_User( $id );
+			$user->add_role( 'odsc_custom' );
+			self::factory()->user->create(
+				array(
+					'user_login' => 'odsc-no-role',
+					'role'       => '',
+				)
+			);
+			wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+			$result = ( new ODSC_Collector_Users() )->collect_role_counts();
+			$this->assertSame( 'collected', $result['status'] );
+			$users = array_column( $result['value']['users'], null, 'user_login' );
+			$this->assertSame( array( 'subscriber', 'odsc_custom' ), $users['odsc-multi']['roles'] );
+			$this->assertSame( array(), $users['odsc-no-role']['roles'] );
+			$this->assertSame( array( 'user_login', 'roles' ), array_keys( $users['odsc-multi'] ) );
+			wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+			$result = ( new ODSC_Collector_Users() )->collect_role_counts();
+			$this->assertSame( 'partial', $result['status'] );
+			$this->assertNull( $result['value']['users'] );
+			$this->assertSame( 'list_users_forbidden', $result['value']['users_error_code'] );
+		} finally {
+			remove_role( 'odsc_custom' );
+		}
+	}
+
+	/**
+	 * 定数未定義の場合、保存値を使って判定しない。
+	 *
+	 * @return void
+	 */
+	public function test_unknown_core_auto_update_configuration() {
+		if ( defined( 'WP_AUTO_UPDATE_CORE' ) || ( defined( 'AUTOMATIC_UPDATER_DISABLED' ) && AUTOMATIC_UPDATER_DISABLED ) ) {
+			$this->markTestSkipped( '定数未定義の環境で確認します。' );
+		}
+		update_site_option( 'auto_update_core_major', 'enabled' );
+		update_site_option( 'auto_update_core_minor', 'enabled' );
+		$result = ( new ODSC_Collector_WordPress() )->collect_update_settings();
+		$this->assertSame( 'wordpress_default', $result['value']['core_auto_update'] );
+		$this->assertSame( 'partial', $result['status'] );
+		$this->assertStringContainsString( '判定できません', $result['note'] );
+	}
+
+	/**
+	 * 明示された定数と全体無効化の優先順位を確認する。
+	 *
+	 * @dataProvider core_auto_update_constants
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 * @param mixed  $setting コア更新定数.
+	 * @param bool   $disabled 全体無効化.
+	 * @param string $expected 期待値.
+	 * @return void
+	 */
+	public function test_core_auto_update_constants( $setting, $disabled, $expected ) {
+		if ( defined( 'WP_AUTO_UPDATE_CORE' ) || defined( 'AUTOMATIC_UPDATER_DISABLED' ) ) {
+			$this->markTestSkipped( '起動時に自動更新定数が定義されています。' );
+		}
+		define( 'WP_AUTO_UPDATE_CORE', $setting );
+		define( 'AUTOMATIC_UPDATER_DISABLED', $disabled );
+		$result = ( new ODSC_Collector_WordPress() )->collect_update_settings();
+		$this->assertSame( $expected, $result['value']['core_auto_update'] );
+		if ( 'custom' === $expected ) {
+			$this->assertSame( 'partial', $result['status'] );
+			$this->assertStringContainsString( '判定できません', $result['note'] );
+		}
+	}
+
+	/**
+	 * 定数の検証ケース。
+	 *
+	 * @return array
+	 */
+	public function core_auto_update_constants() {
+		return array(
+			array( true, false, 'all' ),
+			array( 'minor', false, 'minor' ),
+			array( false, false, 'disabled' ),
+			array( 'custom', false, 'custom' ),
+			array( true, true, 'disabled' ),
+		);
+	}
+
+	/**
 	 * Restores globals and plugin filters after each test.
 	 *
 	 * @return void
@@ -57,6 +182,9 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		$result    = $validator->validate( $data, $schema );
 
 		$this->assertTrue( $result->isValid() );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$data = json_decode( wp_json_encode( ( new ODSC_Collector() )->collect() ) );
+		$this->assertTrue( $validator->validate( $data, $schema )->isValid() );
 	}
 
 	/**
@@ -748,9 +876,10 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		);
 		$this->assertGreaterThan( 0, $user_id );
 
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$json = ( new ODSC_Exporter() )->encode( ( new ODSC_Collector() )->collect() );
 
-		$this->assertStringNotContainsString( 'odsc-sensitive-login', $json );
+		$this->assertStringContainsString( 'odsc-sensitive-login', $json );
 		$this->assertStringNotContainsString( 'odsc-sensitive@example.test', $json );
 		$this->assertStringNotContainsString( 'odsc-sensitive-password', $json );
 		$this->assertStringNotContainsString( 'DB_PASSWORD', $json );
@@ -800,6 +929,26 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		wp_set_current_user( $subscriber );
 		$this->set_download_request( wp_create_nonce( 'odsc_download_result' ) );
 
+		$this->expectException( WPDieException::class );
+		$this->expectExceptionCode( 403 );
+		ODSC_Admin::get_instance()->handle_download();
+	}
+
+	/**
+	 * 診断後に一覧閲覧権限を失った場合は署名済み結果も出力しない。
+	 *
+	 * @return void
+	 */
+	public function test_download_rechecks_list_users_permission() {
+		$id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $id );
+		$this->set_download_request( wp_create_nonce( 'odsc_download_result' ) );
+		$user = new WP_User( $id );
+		$user->add_cap( 'list_users', false );
+		wp_set_current_user( 0 );
+		wp_set_current_user( $id );
+		$this->assertTrue( current_user_can( 'manage_options' ) );
+		$this->assertFalse( current_user_can( 'list_users' ) );
 		$this->expectException( WPDieException::class );
 		$this->expectExceptionCode( 403 );
 		ODSC_Admin::get_instance()->handle_download();

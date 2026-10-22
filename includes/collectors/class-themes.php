@@ -29,11 +29,26 @@ final class ODSC_Collector_Themes {
 			? __( '更新情報は既存のキャッシュのみを参照しています。', 'od-site-check' )
 			: __( '更新キャッシュを取得できないため、テーマの更新有無は確認できませんでした。外部への再確認は行っていません。', 'od-site-check' );
 
+		$auto_updates = (array) get_site_option( 'auto_update_themes', array() );
+		$installed    = array();
+		foreach ( wp_get_themes() as $slug => $installed_theme ) {
+			$installed[] = array(
+				'name'                => $installed_theme->get( 'Name' ),
+				'stylesheet'          => $slug,
+				'version'             => $installed_theme->get( 'Version' ),
+				'is_active'           => $slug === $stylesheet,
+				'parent_stylesheet'   => $installed_theme->get_template() !== $slug ? $installed_theme->get_template() : null,
+				'auto_update_enabled' => in_array( $slug, $auto_updates, true ),
+			);
+		}
+		$note .= ' ' . __( '自動更新は保存された設定であり、フィルター等の上書きや更新の実行・成功を保証しません。', 'od-site-check' );
+
 		return ODSC_Sanitizer::result(
 			'WP-04',
 			$cache_available ? 'collected' : 'partial',
 			'wordpress_theme_api',
 			array(
+				'installed_themes'        => $installed,
 				'name'                    => $theme->get( 'Name' ),
 				'stylesheet'              => $stylesheet,
 				'version'                 => $theme->get( 'Version' ),
