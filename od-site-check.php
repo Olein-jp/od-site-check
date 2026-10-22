@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'ODSC_VERSION', '0.2.0' );
-define( 'ODSC_SCHEMA_VERSION', '1.1' );
+define( 'ODSC_SCHEMA_VERSION', '1.2' );
 define( 'ODSC_MINIMUM_WP_VERSION', '7.1' );
 define( 'ODSC_MINIMUM_PHP_VERSION', '7.4' );
 define( 'ODSC_PLUGIN_FILE', __FILE__ );

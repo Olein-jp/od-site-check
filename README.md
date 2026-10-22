@@ -4,7 +4,7 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 
 ## 主な機能
 
-- WordPress本体、テーマ、プラグイン、ユーザー権限数、一般設定の収集
+- WordPress本体、テーマ、プラグイン、ユーザー権限数・ログイン名と権限グループ、一般設定の収集
 - PHP、データベース、メモリなどの運用環境情報の収集
 - 22項目それぞれの取得状況を、アイコンと状態名で一覧表示
 - WordPressから確認できない6つの運用項目を、ヒアリング前の確認事項として案内
@@ -19,7 +19,7 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 
 ### プラグインの対応情報（JSON Schema 1.1）
 
-`WP-07`（有効）と `WP-08`（無効）の各プラグインに `compatibility` を追加します。既存の名前・識別子・バージョン・更新情報は維持します。構造変更に伴い `schema_version` は `1.1`、Schema の ID は `diagnostic-result-1.1.json` です。厳密な Schema 検証を行う利用側も更新してください。
+`WP-07`（有効）と `WP-08`（無効）の各プラグインに `compatibility` を追加します。既存の名前・識別子・バージョン・更新情報は維持します。構造変更に伴い `schema_version` は `1.2`、Schema の ID は `diagnostic-result-1.2.json` です。厳密な Schema 検証を行う利用側も更新してください。
 
 - `installed`: インストール済み版の情報。`version` は現在版、`requires_wp` / `requires_php` はプラグインヘッダーの最低要件、`tested_wp` は同梱 `readme.txt` の `Tested up to` です。
 - `update`: 保存済み更新キャッシュに記録された更新先の情報。`version` は更新先、`requires_wp` / `requires_php` / `tested_wp` はそれぞれキャッシュの `requires` / `requires_php` / `tested` です。現在版の値で欠落を補いません。
@@ -123,3 +123,11 @@ node bin/verify-release-version.mjs v0.2.0
 git tag v0.2.0
 git push origin v0.2.0
 ```
+
+### 自動更新設定とアカウント一覧（JSON Schema 1.2）
+
+`WP-02` は定数のみでコアの自動更新を判定します。`wordpress_default`（定数未定義）・`custom` は判定不能で、取得状態は `partial` です。管理画面の保存値で補完しません。
+
+`WP-07`・`WP-08` の `auto_update_enabled` と `WP-04` の `installed_themes` 内の同名フィールドは、保存された自動更新設定です。テーマ一覧には非使用テーマ・親テーマも含み、`parent_stylesheet` で親を識別します。フィルターによる上書きや更新の実行・成功は保証しません。MUプラグイン・ドロップインはこの判定の対象外です。
+
+`WP-11` は人数集計に加え、`list_users` 権限がある場合に `users`（`user_login` と `roles` のみ）を出力します。権限がない場合は `users: null`、`users_error_code: list_users_forbidden`、取得状態は `partial` です。ダウンロード時にも一覧の閲覧権限を再確認します。

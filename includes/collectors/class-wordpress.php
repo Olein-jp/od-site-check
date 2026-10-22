@@ -53,7 +53,7 @@ final class ODSC_Collector_WordPress {
 
 		return ODSC_Sanitizer::result(
 			'WP-02',
-			null === $last_checked ? 'partial' : 'collected',
+			null === $last_checked || in_array( $setting, array( 'wordpress_default', 'custom' ), true ) ? 'partial' : 'collected',
 			'wordpress_configuration',
 			array(
 				'core_auto_update'         => $setting,
@@ -61,7 +61,7 @@ final class ODSC_Collector_WordPress {
 				'cached_update_checked'    => null !== $last_checked,
 				'cached_update_checked_at' => $last_checked ? wp_date( DATE_RFC3339, $last_checked ) : null,
 			),
-			__( '更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。', 'od-site-check' )
+			__( '更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。', 'od-site-check' ) . ( in_array( $setting, array( 'wordpress_default', 'custom' ), true ) ? ' ' . __( '定数からコアの自動更新設定を判定できません。管理画面の保存値による補完は行っていません。', 'od-site-check' ) : '' )
 		);
 	}
 

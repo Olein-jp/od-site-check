@@ -199,20 +199,22 @@ final class ODSC_Collector_Plugins {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function format_plugins( $plugins, $activation_state, $include_update = true, $updates = null, $cache_available = false ) {
-		$output = array();
+		$output       = array();
+		$auto_updates = (array) get_site_option( 'auto_update_plugins', array() );
 
 		foreach ( $plugins as $file => $data ) {
 			$update               = $include_update && $cache_available && is_object( $updates ) && isset( $updates->response[ $file ] ) ? $updates->response[ $file ] : null;
 			$update_compatibility = $this->get_update_compatibility( $update, $updates );
 
 			$output[] = array(
-				'name'             => isset( $data['Name'] ) ? $data['Name'] : '',
-				'identifier'       => $file,
-				'version'          => isset( $data['Version'] ) ? $data['Version'] : '',
-				'activation_state' => $activation_state,
-				'update_available' => $include_update && ! $cache_available ? null : null !== $update,
-				'new_version'      => null !== $update_compatibility ? $update_compatibility['version'] : null,
-				'compatibility'    => array(
+				'name'                => isset( $data['Name'] ) ? $data['Name'] : '',
+				'identifier'          => $file,
+				'version'             => isset( $data['Version'] ) ? $data['Version'] : '',
+				'activation_state'    => $activation_state,
+				'auto_update_enabled' => in_array( $file, $auto_updates, true ),
+				'update_available'    => $include_update && ! $cache_available ? null : null !== $update,
+				'new_version'         => null !== $update_compatibility ? $update_compatibility['version'] : null,
+				'compatibility'       => array(
 					'installed' => array(
 						'version'      => isset( $data['Version'] ) ? $data['Version'] : '',
 						'requires_wp'  => $this->normalize_requirement( $data['RequiresWP'] ?? null ),
@@ -236,7 +238,7 @@ final class ODSC_Collector_Plugins {
 	 * @return string
 	 */
 	private function compatibility_note() {
-		return __( '対応情報は作者の記載に基づき、動作保証ではありません。最低要件は対応上限ではなく、WPの動作確認済みバージョンを超える場合は事前検証が必要です。PHPの動作確認上限は不明のため提供元へ確認してください。更新先は保存済みキャッシュの情報であり、最新公開版の確認を意味しません。', 'od-site-check' );
+		return __( '自動更新は保存された設定であり、フィルター等の上書きや更新の実行・成功を保証しません。対応情報は作者の記載に基づき、動作保証ではありません。最低要件は対応上限ではなく、WPの動作確認済みバージョンを超える場合は事前検証が必要です。PHPの動作確認上限は不明のため提供元へ確認してください。更新先は保存済みキャッシュの情報であり、最新公開版の確認を意味しません。', 'od-site-check' );
 	}
 
 	/**
