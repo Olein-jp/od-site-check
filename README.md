@@ -89,7 +89,7 @@ npm run verify:zip
 npm run env:stop
 ```
 
-JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.2.0.zip` に生成されます。
+JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.3.0.zip` に生成されます。
 
 ### 対応環境の検証
 
@@ -119,9 +119,9 @@ npm run test:smoke
 開発者は変更を main に取り込んだ後、プラグインヘッダー・`ODSC_VERSION`・readme の Stable tag・package.json・package-lock.json のバージョンを揃えたコミットに `vX.Y.Z` タグを付け、origin に push します。GitHub Actions がバージョン一致、ZIP の整合性、配布ファイルの許可リストを検証した後にリリースを公開します。既存のタグ・リリースは上書きせず、修正時は新しいバージョンを公開してください。公開前の静的チェックと WordPress 上の動作確認は開発者が実行します。
 
 ```sh
-node bin/verify-release-version.mjs v0.2.0
-git tag v0.2.0
-git push origin v0.2.0
+node bin/verify-release-version.mjs v0.3.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 ### 自動更新設定とアカウント一覧（JSON Schema 1.2）
