@@ -1,6 +1,6 @@
 # 診断結果JSONの出力項目一覧
 
-対象：OD Site Check 0.4.0 / JSON Schema 1.3 / hearing 1.0。
+対象：OD Site Check 0.5.0 / JSON Schema 1.4 / hearing 1.0。
 
 コピー・ダウンロードされる診断結果JSONについて、項目、取り得る値、意味、取得上の制約をまとめます。型の機械的な定義は [JSON Schema](../schemas/diagnostic-result.schema.json)、取得処理は [収集処理](../includes/class-collector.php) と [各収集クラス](../includes/collectors/) を参照してください。出力仕様を変更したときは、この文書も更新します。
 
@@ -17,10 +17,10 @@
 
 | キー | 型・取り得る値 | 意味 |
 | --- | --- | --- |
-| `schema_version` | 文字列、固定値 `"1.3"` | JSON構造のバージョン。プラグインのバージョンとは別です。 |
+| `schema_version` | 文字列、固定値 `"1.4"` | JSON構造のバージョン。プラグインのバージョンとは別です。 |
 | `collector` | オブジェクト | 収集したプラグインの情報。 |
 | `collector.name` | 文字列、固定値 `"OD Site Check"` | 収集ツール名。 |
-| `collector.version` | 文字列、現行版は `"0.4.0"` | 実際に収集したプラグインのバージョン。 |
+| `collector.version` | 文字列、現行版は `"0.5.0"` | 実際に収集したプラグインのバージョン。 |
 | `collected_at` | 日時文字列 | 診断全体の収集日時。更新キャッシュの確認日時とは別です。 |
 | `site` | オブジェクト | 対象サイトの情報。 |
 | `site.url` | URL文字列 | `home_url('/')` で取得したサイトの公開URL。 |
@@ -131,6 +131,40 @@
 | `custom` | `WP_AUTO_UPDATE_CORE` が上記以外の値。定数から更新範囲を判定不能。 |
 
 管理画面の保存値による補完は行いません。`wordpress_default` と `custom` は必ず `partial` です。定数で設定を取得できた場合も、更新の実行・成功は保証しません。
+
+
+#### 本体自動更新の追加情報（Schema 1.4）
+
+`core_auto_update_details` は既存4キーを変更せずに追加する必須オブジェクトです。WP-02がunsupported／error等でvalue=nullの場合は追加情報もありません。保存設定や定数の指定を記録するだけで、実効値・更新実行・成功を保証しません。
+
+| キー | 型・値 | 意味 |
+| --- | --- | --- |
+| `saved_options.major/minor/dev` | `enabled` / `disabled` / `unset` / `custom` | get_site_optionの参照値。未保存時のmajorはunset、minor/devはenabled。許可した3文字列以外は型違いもcustomとし、生値を出力しません。 |
+| `option_source` | `wordpress_site_options`固定 | WordPress APIによる読み取り元。オプション用のフィルターは通常のAPI経由で適用されるため、生DB値の検査ではありません。 |
+| `constant_policy` | 既存core_auto_updateと同じ分類 | 定数由来の指定。保存値を取り込んで再分類しません。 |
+| `global_disable_constant` | boolean | AUTOMATIC_UPDATER_DISABLEDの真偽。フック適用後の停止状態ではありません。 |
+| `registered_filters` | 必須5キーのboolean | automatic_updater_disabled、allow_major_auto_core_updates、allow_minor_auto_core_updates、allow_dev_auto_core_updates、auto_update_core。登録有無だけを検出し、コールバックを実行しません。 |
+| `declared_policy.major/minor/dev` | `enabled` / `disabled` / `unknown` | 下表の優先順位で静的に解釈した指定。最終動作の判定ではありません。 |
+| `effective_behavior_verified` | false固定 | 更新の実行可否・成功は検証しません。 |
+| `limitation` | 文字列 | 参照範囲と未検証条件の説明。機械判定はこの文章に依存しません。 |
+
+保存設定には参照時の既定値も含まれ、明示保存の有無を保証するフラグはありません。画面の「有効」はAPI参照設定を示し、実際に更新が有効・実行可能・成功する意味ではありません。
+
+| 適用順 | 条件 | major / minor / dev の静的解釈 |
+| --- | --- | --- |
+| 1 | 保存値enabled／disabled | 各値を採用 |
+| 1 | 保存値unset／custom | 対応種別unknown |
+| 2 | WP_AUTO_UPDATE_CORE=true | enabled / enabled / enabled |
+| 2 | WP_AUTO_UPDATE_CORE=false | disabled / disabled / disabled |
+| 2 | WP_AUTO_UPDATE_CORE=minor | disabled / enabled / disabled |
+| 2 | その他の定数値 | unknown / unknown / unknown |
+| 3 | AUTOMATIC_UPDATER_DISABLEDが真 | disabled / disabled / disabled |
+| 4 | automatic_updater_disabled／auto_update_coreが登録 | 全種別unknown |
+| 4 | allow_major/minor/dev_auto_core_updatesが登録 | 対応する種別unknown |
+
+既知の定数指定は保存設定より優先します。定数未定義でmajor=unsetのときは、インストール時期やWPバージョンから補完せずunknownです。全体停止定数が真でも、上書きに関わる登録フックがあれば保守的に上表のunknownを最後に適用します。WordPress自身のフック登録も除外しません。新しいWordPressが意味を持たせる文字列であっても、既存の定数分類がcustomなら今回の静的解釈はunknownです。
+
+DISALLOW_FILE_MODSは既存file_modifications_offに記録し、declared_policyを最終動作の有効／無効として使いません。ファイル変更権限・インストール状態・VCS・対象更新オファー等の条件は網羅せず、is_disabledやshould_update等の評価も行いません。
 
 ### WP-03：サイトヘルス
 
@@ -378,3 +412,12 @@ JSONファイルの生成・ダウンロード自体が失敗した場合の画�
 - サイトURL・ログイン名・構成情報は出力に含まれます。一方、本文、ページタイトル、管理者メールアドレス、秘密情報など、定義した取得対象外の情報は含めません。
 - `role_counts` は通常オブジェクトですが、現行実装はPHPの空配列をそのままJSONへ変換するため、権限集計が空の場合は `[]` となる可能性があります。JSON Schemaはオブジェクトを定義しているため、その境界条件では実装と差異があります。
 - テスト用・拡張用フィルターによって収集処理が置き換えられた場合、この文書の通常時の条件から外れることがあります。この文書は標準の収集処理を対象とします。
+
+
+## Schema 1.3以前との互換性
+
+出力のschema_versionで判別してください。現行1.4はWP-02の取得済み／一部取得時にcore_auto_update_detailsを必須とします。[保存したSchema 1.3原本](../schemas/diagnostic-result-1.3.schema.json)は旧成果物の検証用です。1.3データを1.4のSchemaへ無理に通したり、詳細がない場合を「無効」「マイナーのみ」と補完したりしません。
+
+レポート側では、1.3なら従来の定数分類と取得制限だけを解釈し、追加詳細は「未取得」と扱います。1.4なら保存設定・定数・登録フック・静的解釈を分けて扱い、effective_behavior_verified=falseを維持します。両版ともhearing 1.0の意味は同じです。保存済み旧JSONの自動変換は行いません。
+
+別リポジトリのレポート生成実装はこの変更では改修・検証していません。この両版対応は連携時の契約であり、外部側の実装確認は後続事項です。

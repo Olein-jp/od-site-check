@@ -80,8 +80,26 @@ function odsc_run_zip_smoke_test() {
 	$odsc_property->setValue( $odsc_admin, $odsc_exporter );
 	$odsc_result_property = new ReflectionProperty( ODSC_Admin::class, 'result' );
 	$odsc_result_property->setAccessible( true );
-	$odsc_result     = $odsc_result_property->getValue( $odsc_admin );
-	$odsc_json       = $odsc_exporter->encode( $odsc_result );
+	$odsc_result = $odsc_result_property->getValue( $odsc_admin );
+	$odsc_json   = $odsc_exporter->encode( $odsc_result );
+	if ( '1.4' !== $odsc_result['schema_version'] || ! file_exists( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result-1.3.schema.json' ) ) {
+		WP_CLI::error( '新Schemaと旧1.3原本の同梱を確認できません。' );
+	}
+	$odsc_wp02 = array_values(
+		array_filter(
+			$odsc_result['results'],
+			static function ( $item ) {
+				return 'WP-02' === $item['id'];
+			}
+		)
+	)[0];
+	if ( ! isset( $odsc_wp02['value']['core_auto_update_details'] ) ||
+		false !== $odsc_wp02['value']['core_auto_update_details']['effective_behavior_verified'] ||
+		false === strpos( $odsc_html, 'メジャー更新の保存設定' ) ||
+		false === strpos( $odsc_html, '自動更新の最終動作' ) ) {
+		WP_CLI::error( 'WP-02の新詳細と未検証の画面表示を確認できません。' );
+	}
+
 	$odsc_definition = ODSC_Hearing::definition();
 	if ( ! ODSC_Hearing::has_definitions() ) {
 		WP_CLI::error( '同梱の質問定義を読み込めません。' );

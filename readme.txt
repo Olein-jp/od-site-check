@@ -3,7 +3,7 @@ Contributors: olein
 Requires at least: 7.1
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,14 @@ OD Site Checkは、オレインデザインによるWordPress運用・改善診�
 初期版では対応していません。マルチサイトを検出した場合は、対象項目を未対応として記録します。
 
 == Changelog ==
+
+= 0.5.0 =
+
+* WP-02に本体自動更新の保存設定・定数・登録フィルター・静的ポリシーを追加。
+* 管理画面で保存設定と自動更新の最終動作未検証を分離表示。
+* JSON Schemaを1.4へ更新し、旧1.3のSchemaと解釈を保持。
+* 既存の定数判別値・取得状態・他21診断項目・ヒアリングと出力条件を維持。
+
 
 = 0.4.0 =
 

@@ -1,8 +1,8 @@
 {
-    "schema_version": "1.3",
+    "schema_version": "1.4",
     "collector": {
         "name": "OD Site Check",
-        "version": "0.4.0"
+        "version": "0.5.0"
     },
     "collected_at": "2026-10-24T09:30:00+09:00",
     "site": {
@@ -28,9 +28,33 @@
                 "core_auto_update": "wordpress_default",
                 "file_modifications_off": false,
                 "cached_update_checked": true,
-                "cached_update_checked_at": "2026-10-24T03:25:34+00:00"
+                "cached_update_checked_at": "2026-10-24T03:25:34+00:00",
+                "core_auto_update_details": {
+                    "saved_options": {
+                        "major": "enabled",
+                        "minor": "enabled",
+                        "dev": "enabled"
+                    },
+                    "option_source": "wordpress_site_options",
+                    "constant_policy": "wordpress_default",
+                    "global_disable_constant": false,
+                    "registered_filters": {
+                        "automatic_updater_disabled": false,
+                        "allow_major_auto_core_updates": false,
+                        "allow_minor_auto_core_updates": false,
+                        "allow_dev_auto_core_updates": false,
+                        "auto_update_core": false
+                    },
+                    "declared_policy": {
+                        "major": "enabled",
+                        "minor": "enabled",
+                        "dev": "enabled"
+                    },
+                    "effective_behavior_verified": false,
+                    "limitation": "保存設定（参照時の既定値を含む）・定数および登録フィルターの有無のみ。実際の更新可否や成功を保証しません。ファイル変更制限・インストール状態・VCS等の動作条件は網羅していません。"
+                }
             },
-            "note": "更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。 定数からコアの自動更新設定を判定できません。管理画面の保存値による補完は行っていません。",
+            "note": "更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。 定数からコアの自動更新設定を判定できません。既存の定数判別値は保存設定で補完せず、保存設定等は別の詳細情報に記録しています。",
             "error_code": null
         },
         {
@@ -275,14 +299,14 @@
                     {
                         "name": "OD Site Check",
                         "identifier": "od-site-check/od-site-check.php",
-                        "version": "0.4.0",
+                        "version": "0.5.0",
                         "activation_state": "active",
                         "auto_update_enabled": false,
                         "update_available": false,
                         "new_version": null,
                         "compatibility": {
                             "installed": {
-                                "version": "0.4.0",
+                                "version": "0.5.0",
                                 "requires_wp": "7.1",
                                 "requires_php": "7.4",
                                 "tested_wp": "7.1",

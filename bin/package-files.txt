@@ -24,3 +24,5 @@ docs/hearing.md
 docs/hearing-acceptance.md
 docs/samples/hearing-no.json
 docs/samples/hearing-yes.json
+schemas/diagnostic-result-1.3.schema.json
+docs/wp02-acceptance.md

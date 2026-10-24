@@ -278,4 +278,57 @@ class CoreUpdateSettingsTest extends WP_UnitTestCase {
 			$this->assertSame( '', ob_get_clean() );
 		}
 	}
+	/**
+	 * ファイル変更制限を保持し、静的指定を実効値と扱わない。
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 * @return void
+	 */
+	public function test_file_modification_restriction_is_preserved() {
+		define( 'DISALLOW_FILE_MODS', true );
+		$result = ( new ODSC_Collector_WordPress() )->collect_update_settings();
+		$this->assertTrue( $result['value']['file_modifications_off'] );
+		$this->assertFalse( $result['value']['core_auto_update_details']['effective_behavior_verified'] );
+		$this->assertSame( 'wordpress_default', $result['value']['core_auto_update'] );
+		$this->assertSame( 'partial', $result['status'] );
+	}
+
+	/**
+	 * 収集時にHTML・DB書込み・外部HTTP・更新方針評価を追加しない。
+	 *
+	 * @return void
+	 */
+	public function test_read_only_collection_and_missing_cache() {
+		delete_site_transient( 'update_core' );
+		$writes       = 0;
+		$requests     = 0;
+		$query_filter = static function ( $query ) use ( &$writes ) {
+			if ( preg_match( '/^\s*(INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP)\b/i', $query ) ) {
+				++$writes; }
+			return $query;
+		};
+		$http_filter  = static function () use ( &$requests ) {
+			++$requests;
+			return new WP_Error( 'blocked', 'テスト中は外部通信を許可しない。' );
+		};
+		add_filter( 'query', $query_filter );
+		add_filter( 'pre_http_request', $http_filter );
+		ob_start();
+		try {
+			$result = ( new ODSC_Collector_WordPress() )->collect_update_settings();
+		} finally {
+			$html = (string) ob_get_clean();
+			remove_filter( 'query', $query_filter );
+			remove_filter( 'pre_http_request', $http_filter );
+		}
+		$this->assertSame( 0, $writes );
+		$this->assertSame( 0, $requests );
+		$this->assertSame( '', $html );
+		$this->assertSame( 'partial', $result['status'] );
+		$this->assertFalse( $result['value']['cached_update_checked'] );
+		$this->assertNull( $result['value']['cached_update_checked_at'] );
+		$this->assertSame( 'wordpress_configuration', $result['source'] );
+		$this->assertNull( $result['error_code'] );
+	}
 }

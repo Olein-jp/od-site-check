@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       OD Site Check
  * Description:       WordPressサイトの構成・運用環境を確認し、診断用JSONを生成します。
- * Version:           0.4.0
+ * Version:           0.5.0
  * Requires at least: 7.1
  * Requires PHP:      7.4
  * Author:            Koji Kuno
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ODSC_VERSION', '0.4.0' );
+define( 'ODSC_VERSION', '0.5.0' );
 define( 'ODSC_SCHEMA_VERSION', '1.4' );
 define( 'ODSC_MINIMUM_WP_VERSION', '7.1' );
 define( 'ODSC_MINIMUM_PHP_VERSION', '7.4' );

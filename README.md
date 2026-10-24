@@ -20,7 +20,7 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 
 `WP-15`の`search_engine_visible`は、WordPressの「検索エンジンがサイトをインデックスしないようにする」設定（`blog_public`）だけを表します。`true`でも、検索エンジンへの登録、クロール、インデックス済みかどうか、検索順位、SEO上の問題がないことは確認していません。この値をSEOの正常判定には使用しません。外部の検索エンジンやAPIへの照会も行いません。
 
-### 定型ヒアリング（JSON Schema 1.3／hearing 1.0）
+### 定型ヒアリング（Schema 1.3で追加／hearing 1.0）
 
 ヒアリングは自己申告です。既存の自動取得結果22件とは区別し、`hearing` に回答コードだけを記録します。危険度・スコア・優先度を算出せず、OPS項目の `manual_required` も書き換えません。
 
@@ -30,7 +30,7 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 
 ### プラグインの対応情報（JSON Schema 1.2で追加）
 
-`WP-07`（有効）と `WP-08`（無効）の各プラグインに `compatibility` を追加します。既存の名前・識別子・バージョン・更新情報は維持します。この情報はSchema 1.2で追加しました。現行の `schema_version` は `1.3`、SchemaのIDは `diagnostic-result-1.3.json` です。厳密な Schema 検証を行う利用側も更新してください。
+`WP-07`（有効）と `WP-08`（無効）の各プラグインに `compatibility` を追加します。既存の名前・識別子・バージョン・更新情報は維持します。この情報はSchema 1.2で追加しました。現行の `schema_version` は `1.4`、SchemaのIDは `diagnostic-result-1.4.json` です。厳密な Schema 検証を行う利用側も更新してください。
 
 - `installed`: インストール済み版の情報。`version` は現在版、`requires_wp` / `requires_php` はプラグインヘッダーの最低要件、`tested_wp` は同梱 `readme.txt` の `Tested up to` です。
 - `update`: 保存済み更新キャッシュに記録された更新先の情報。`version` は更新先、`requires_wp` / `requires_php` / `tested_wp` はそれぞれキャッシュの `requires` / `requires_php` / `tested` です。現在版の値で欠落を補いません。
@@ -102,7 +102,7 @@ npm run verify:zip
 npm run env:stop
 ```
 
-JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.4.0.zip` に生成されます。
+JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.5.0.zip` に生成されます。
 
 ### 対応環境の検証
 
@@ -132,14 +132,18 @@ npm run test:smoke
 開発者は変更を main に取り込んだ後、プラグインヘッダー・`ODSC_VERSION`・readme の Stable tag・package.json・package-lock.json のバージョンを揃えたコミットに `vX.Y.Z` タグを付け、origin に push します。GitHub Actions がバージョン一致、ZIP の整合性、配布ファイルの許可リストを検証した後にリリースを公開します。既存のタグ・リリースは上書きせず、修正時は新しいバージョンを公開してください。公開前の静的チェックと WordPress 上の動作確認は開発者が実行します。
 
 ```sh
-node bin/verify-release-version.mjs v0.4.0
-git tag v0.4.0
-git push origin v0.4.0
+node bin/verify-release-version.mjs v0.5.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 ### 自動更新設定とアカウント一覧（JSON Schema 1.2で追加）
 
-`WP-02` は定数のみでコアの自動更新を判定します。`wordpress_default`（定数未定義）・`custom` は判定不能で、取得状態は `partial` です。管理画面の保存値で補完しません。
+`WP-02` の既存 `core_auto_update` は定数だけによる分類です。`wordpress_default`（定数未定義）・`custom` は判定不能で、取得状態は引き続き `partial` です。保存値でこの分類や取得状態を補完しません。
+
+Schema 1.4では別の `core_auto_update_details` に保存設定（API参照時の既定値を含む）、定数、登録フィルターの有無、静的な `declared_policy` を追加します。メジャー設定が `unset`、値が独自の形式、または上書きし得るフィルターがある場合は不明を区別します。`wordpress_default` を「マイナーのみ」と断定しません。保存設定と定数が異なる指定でも、両方を別に記録します。
+
+自動更新の最終動作は常に未検証です。更新方針のフィルターを実行して推測せず、Cron・更新・外部照会は行いません。設定の明示保存の有無は断定せず、インストール状態・VCS・権限等の動作条件も網羅しません。[WP-02の詳細と新旧版の解釈](docs/json-output.md#wp-02更新設定)、[T01〜T16の検証記録](docs/wp02-acceptance.md)を参照してください。
 
 `WP-07`・`WP-08` の `auto_update_enabled` と `WP-04` の `installed_themes` 内の同名フィールドは、保存された自動更新設定です。テーマ一覧には非使用テーマ・親テーマも含み、`parent_stylesheet` で親を識別します。フィルターによる上書きや更新の実行・成功は保証しません。MUプラグイン・ドロップインはこの判定の対象外です。
 

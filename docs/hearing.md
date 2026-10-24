@@ -1,6 +1,6 @@
 # 定型ヒアリング定義 1.0
 
-定義の正本は [`schemas/hearing-1.0.json`](../schemas/hearing-1.0.json) です。このファイルはJSON Schemaではなく、画面・検証・レポートで共有する固定データです。完成出力の検証は [JSON Schema 1.3](../schemas/diagnostic-result.schema.json) を使用します。
+定義の正本は [`schemas/hearing-1.0.json`](../schemas/hearing-1.0.json) です。このファイルはJSON Schemaではなく、画面・検証・レポートで共有する固定データです。完成出力の検証は [JSON Schema 1.4](../schemas/diagnostic-result.schema.json) を使用します。
 
 質問文・ID・選択肢コード・ラベル・条件を勝手に変更せず、意味が変わる改訂はhearing版を分けます。自己申告を自動取得の事実や安全性の判定として扱わず、「その他」は詳細未取得として解釈してください。
 

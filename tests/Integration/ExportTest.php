@@ -172,9 +172,22 @@ class ExportTest extends WP_UnitTestCase {
 		$this->assertSame( '1.2', $payload['schema_version'] );
 		$results                   = $payload['results'];
 		$payload['schema_version'] = ODSC_SCHEMA_VERSION;
+		$details                   = ( new ODSC_Collector_WordPress() )->collect_update_settings()['value']['core_auto_update_details'];
+		foreach ( $payload['results'] as &$result ) {
+			if ( 'WP-02' === $result['id'] ) {
+				$result['value']['core_auto_update_details'] = $details; }
+		}
+		unset( $result );
+
 		$this->request( ( new ODSC_Exporter() )->encode( $payload ), 'prepare' );
 		$prepared = json_decode( $this->capture( 'prepare' ), true );
-		$this->assertSame( $results, json_decode( $prepared['json'], true )['results'] );
+		$after    = json_decode( $prepared['json'], true )['results'];
+		foreach ( $after as &$result ) {
+			if ( 'WP-02' === $result['id'] ) {
+				unset( $result['value']['core_auto_update_details'] ); }
+		}
+		unset( $result );
+		$this->assertSame( $results, $after );
 		$this->assertCount( 22, $results );
 	}
 
@@ -314,6 +327,38 @@ class ExportTest extends WP_UnitTestCase {
 			$this->request( $json, 'prepare', $backup );
 			$prepared = json_decode( $this->capture( 'prepare' ), true );
 			$this->assertSame( ODSC_Test_Hearing::answers( $backup ), json_decode( $prepared['json'], true )['hearing']['answers'] );
+		}
+	}
+
+	/**
+	 * 1.3の固定入力を拡張しても、他21項目とhearingは変化しない。
+	 *
+	 * @return void
+	 */
+	public function test_schema_transition_preserves_other_results_and_hearing() {
+		$schema = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 新Schema。
+		foreach ( array( 'no', 'yes' ) as $backup ) {
+			$legacy                          = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'tests/fixtures/diagnostic-0.4.0-' . $backup . '.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 旧版固定入力。
+			$payload                         = $legacy;
+			$payload['schema_version']       = ODSC_SCHEMA_VERSION;
+			$payload['collector']['version'] = ODSC_VERSION;
+			foreach ( $payload['results'] as &$result ) {
+				if ( 'WP-02' === $result['id'] ) {
+					$result['value']['core_auto_update_details'] = ( new ODSC_Collector_WordPress() )->collect_update_settings()['value']['core_auto_update_details'];
+				}
+			}
+			unset( $result );
+			$this->request( ( new ODSC_Exporter() )->encode( $payload ), 'prepare', $backup );
+			$prepared = json_decode( $this->capture( 'prepare' ), true );
+			$complete = json_decode( $prepared['json'], true );
+			$this->assertTrue( ( new Opis\JsonSchema\Validator() )->validate( json_decode( $prepared['json'] ), $schema )->isValid() );
+			$this->assertSame( $legacy['hearing'], $complete['hearing'] );
+			foreach ( $legacy['results'] as $index => $before ) {
+				$after = $complete['results'][ $index ];
+				if ( 'WP-02' === $before['id'] ) {
+					unset( $after['value']['core_auto_update_details'] ); }
+				$this->assertSame( $before, $after );
+			}
 		}
 	}
 

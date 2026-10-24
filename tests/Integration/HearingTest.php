@@ -183,7 +183,7 @@ class HearingTest extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_shipped_samples_match_the_complete_schema() {
-		$schema = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result-1.3.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱Schema。
+		$schema = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱Schema。
 		foreach ( array( 'no', 'yes' ) as $backup ) {
 			$data = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'docs/samples/hearing-' . $backup . '.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱サンプル。
 			$this->assertTrue( ( new Validator() )->validate( $data, $schema )->isValid() );
