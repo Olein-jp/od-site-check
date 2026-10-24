@@ -73,8 +73,8 @@ final class ODSC_Admin {
 	 */
 	public function add_menu_page() {
 		$hook = add_management_page(
-			__( 'OD サイト診断', 'od-site-check' ),
-			__( 'OD サイト診断', 'od-site-check' ),
+			__( 'OD Site Check', 'od-site-check' ),
+			__( 'OD Site Check', 'od-site-check' ),
 			'manage_options',
 			'od-site-check',
 			array( $this, 'render_page' )
@@ -238,7 +238,7 @@ final class ODSC_Admin {
 		}
 		?>
 		<div class="wrap odsc-wrap">
-			<h1><?php esc_html_e( 'OD サイト診断', 'od-site-check' ); ?></h1>
+			<h1><?php esc_html_e( 'OD Site Check', 'od-site-check' ); ?></h1>
 
 			<?php if ( is_multisite() ) : ?>
 				<div class="notice notice-warning inline">

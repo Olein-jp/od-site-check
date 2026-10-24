@@ -13,7 +13,7 @@
 ## 再現手順
 
 1. `npm run env:start` を実行する。既定ポートが使用中なら `node_modules/.bin/wp-env start --auto-port` を使う。表示された開発用WordPressへadminでログインする。
-2. 「ツール → OD サイト診断」で同意して診断する。WP-02の保存設定、定数指定、フィルターの登録有無、最終動作の未検証が分かれていることを確認する。
+2. 「ツール → OD Site Check」で同意して診断する。WP-02の保存設定、定数指定、フィルターの登録有無、最終動作の未検証が分かれていることを確認する。
 3. ヒアリングの常時13問を明示回答し、コピーとダウンロードを行う。H-05=yesなら20問を回答する。JSONのschema_version=1.4とWP-02の追加詳細を確認する。
 4. 幅375pxの確認は同じサイトの `/wp-content/plugins/od-site-check/tests/browser/narrow.html` を開き、フレーム内で診断する。検証用ページは配布ZIPに含まれない。
 5. `composer run lint`、`npm run test:php`、`npm run test:js` を実行する。PHPの対応環境を横断する場合は通常環境を停止して `npm run test:compat` を使う（既定ポートが重なるため）。

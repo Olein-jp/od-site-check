@@ -48,7 +48,7 @@ function odsc_run_zip_smoke_test() {
 	$odsc_admin->render_page();
 	$odsc_html = ob_get_clean();
 
-	if ( false === strpos( $odsc_html, 'OD サイト診断' ) ) {
+	if ( false === strpos( $odsc_html, 'OD Site Check' ) ) {
 		WP_CLI::error( 'The administrator page did not render.' );
 	}
 

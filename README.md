@@ -68,7 +68,7 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 ## 利用方法
 
 1. [最新リリース](https://github.com/Olein-jp/od-site-check/releases/latest) の Assets から `od-site-check-[バージョン].zip` をダウンロードし、WordPressへアップロードして有効化します。GitHub が自動表示する Source code の ZIP は使用しません。
-2. 「ツール > OD サイト診断」を開きます。
+2. 「ツール > OD Site Check」を開きます。
 3. 収集内容を確認して「サイトの状態を確認する」を押します。
 4. 項目別の取得状況と、ヒアリング前の確認事項を確認します。
 5. 「定型ヒアリング」に回答します。H-05が「取得している」なら20問、それ以外なら13問が対象です。「わからない」も明示的に選ぶと回答済みになります。
@@ -102,7 +102,7 @@ npm run verify:zip
 npm run env:stop
 ```
 
-JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.5.0.zip` に生成されます。
+JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.5.1.zip` に生成されます。
 
 ### 対応環境の検証
 
@@ -132,9 +132,9 @@ npm run test:smoke
 開発者は変更を main に取り込んだ後、プラグインヘッダー・`ODSC_VERSION`・readme の Stable tag・package.json・package-lock.json のバージョンを揃えたコミットに `vX.Y.Z` タグを付け、origin に push します。GitHub Actions がバージョン一致、ZIP の整合性、配布ファイルの許可リストを検証した後にリリースを公開します。既存のタグ・リリースは上書きせず、修正時は新しいバージョンを公開してください。公開前の静的チェックと WordPress 上の動作確認は開発者が実行します。
 
 ```sh
-node bin/verify-release-version.mjs v0.5.0
-git tag v0.5.0
-git push origin v0.5.0
+node bin/verify-release-version.mjs v0.5.1
+git tag v0.5.1
+git push origin v0.5.1
 ```
 
 ### 自動更新設定とアカウント一覧（JSON Schema 1.2で追加）

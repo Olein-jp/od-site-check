@@ -9,7 +9,7 @@
 ## 再現手順
 
 1. Dockerを起動し、既存の開発依存を入れて `npm run env:start` を実行する。ポート使用中は `node_modules/.bin/wp-env start --auto-port` を使い、表示されたURLを開く。
-2. 開発用WordPressのadminでログインし、「ツール → OD サイト診断」で収集内容に同意して診断する。
+2. 開発用WordPressのadminでログインし、「ツール → OD Site Check」で収集内容に同意して診断する。
 3. 下表に従い回答・切替・コピー・ダウンロードを確認する。H-05以外は「わからない」を選んでよい。
 4. 狭い画面は同じサイトの `/wp-content/plugins/od-site-check/tests/browser/narrow.html` を開く。幅375pxの同一サイトiframe内で同じ操作を行う。この検証ファイルは配布ZIPに含まれない。
 5. `composer run lint`、`npm run test:js`、`npm run test:php` を実行する。互換性全体は通常環境を停止してから `npm run test:compat` を実行する（既定ポートが重なるため）。
