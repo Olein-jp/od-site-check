@@ -368,12 +368,16 @@ final class ODSC_Admin {
 					$show_note = ( 'WP-03' === $item['id'] || in_array( $item['status'], array( 'partial', 'unavailable', 'unsupported', 'error' ), true ) ) && ! empty( $item['note'] );
 					?>
 					<li data-odsc-result-id="<?php echo esc_attr( $item['id'] ); ?>">
-						<span class="odsc-result-detail">
+						<div class="odsc-result-detail">
 							<span class="odsc-result-name"><code><?php echo esc_html( $item['id'] ); ?></code> <?php echo esc_html( $labels[ $item['id'] ] ); ?></span>
 							<?php if ( $show_note ) : ?>
 								<span class="odsc-result-note"><?php echo esc_html( $item['note'] ); ?></span>
 							<?php endif; ?>
-						</span>
+							<?php
+							if ( 'WP-02' === $item['id'] ) {
+								$this->render_core_update_settings( $item['value'] ); }
+							?>
+						</div>
 						<span class="odsc-status odsc-status--<?php echo esc_attr( $status['class'] ); ?>" data-odsc-status>
 							<span class="dashicons <?php echo esc_attr( $status['icon'] ); ?>" aria-hidden="true"></span>
 							<span data-odsc-status-label><?php echo esc_html( $status['label'] ); ?></span>
@@ -422,6 +426,57 @@ final class ODSC_Admin {
 			<h2><?php esc_html_e( 'ダウンロード後のお願い', 'od-site-check' ); ?></h2>
 			<p><?php esc_html_e( 'ダウンロードしたJSONファイルをオレインデザインへお送りください。調査終了後は、このプラグインを無効化・削除してください。', 'od-site-check' ); ?></p>
 		</div>
+		<?php
+	}
+
+	/**
+	 * 本体自動更新の参照設定と最終動作未検証を分けて表示する。
+	 *
+	 * @param mixed $value WP-02の取得値.
+	 * @return void
+	 */
+	private function render_core_update_settings( $value ) {
+		if ( ! is_array( $value ) || ! isset( $value['core_auto_update_details'] ) || ! is_array( $value['core_auto_update_details'] ) ) {
+			return;
+		}
+		$details   = $value['core_auto_update_details'];
+		$labels    = array(
+			'enabled'  => __( '有効', 'od-site-check' ),
+			'disabled' => __( '無効', 'od-site-check' ),
+			'unset'    => __( '未指定', 'od-site-check' ),
+			'custom'   => __( '独自の値のため不明', 'od-site-check' ),
+		);
+		$constants = array(
+			'wordpress_default' => __( '定数から更新範囲を判定できません', 'od-site-check' ),
+			'all'               => __( '全更新を許可する指定', 'od-site-check' ),
+			'minor'             => __( 'マイナー更新のみを許可する指定', 'od-site-check' ),
+			'disabled'          => __( '自動更新を停止する指定', 'od-site-check' ),
+			'custom'            => __( '独自の定数値のため不明', 'od-site-check' ),
+		);
+		$fields    = array(
+			'major' => __( 'メジャー更新の保存設定', 'od-site-check' ),
+			'minor' => __( 'マイナー更新の保存設定', 'od-site-check' ),
+			'dev'   => __( '開発版更新の保存設定', 'od-site-check' ),
+		);
+		?>
+		<section class="odsc-core-update-settings" aria-labelledby="odsc-core-update-heading">
+			<h3 id="odsc-core-update-heading"><?php esc_html_e( 'WordPress本体の自動更新設定', 'od-site-check' ); ?></h3>
+			<dl>
+				<?php foreach ( $fields as $type => $label ) : ?>
+					<dt><?php echo esc_html( $label ); ?></dt>
+					<dd><?php echo esc_html( $labels[ $details['saved_options'][ $type ] ?? '' ] ?? __( '不明', 'od-site-check' ) ); ?></dd>
+				<?php endforeach; ?>
+				<dt><?php esc_html_e( '定数による自動更新の指定', 'od-site-check' ); ?></dt>
+				<dd><?php echo esc_html( $constants[ $details['constant_policy'] ?? '' ] ?? __( '不明', 'od-site-check' ) ); ?></dd>
+				<dt><?php esc_html_e( '全体停止定数による指定', 'od-site-check' ); ?></dt>
+				<dd><?php echo esc_html( ! empty( $details['global_disable_constant'] ) ? __( '停止指定あり', 'od-site-check' ) : __( '停止指定なし', 'od-site-check' ) ); ?></dd>
+				<dt><?php esc_html_e( '更新方針に関わるフィルターの登録', 'od-site-check' ); ?></dt>
+				<dd><?php echo esc_html( in_array( true, $details['registered_filters'] ?? array(), true ) ? __( 'あり（効果は未検証）', 'od-site-check' ) : __( '対象5種類では検出なし', 'od-site-check' ) ); ?></dd>
+				<dt><?php esc_html_e( '自動更新の最終動作', 'od-site-check' ); ?></dt>
+				<dd><?php esc_html_e( '未検証', 'od-site-check' ); ?></dd>
+			</dl>
+			<p class="description"><?php esc_html_e( '保存設定はWordPress APIの参照値で、未保存時の既定値を含みます。明示的な保存の有無は区別していません。保存設定と定数は別の情報です。登録されたフィルターで変わる可能性もあるため、更新の実行可否や成功は保証しません。', 'od-site-check' ); ?></p>
+		</section>
 		<?php
 	}
 

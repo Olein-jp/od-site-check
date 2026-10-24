@@ -245,4 +245,37 @@ class CoreUpdateSettingsTest extends WP_UnitTestCase {
 			$this->assertTrue( ( new Validator() )->validate( $data, $schema )->isValid() );
 		}
 	}
+	/**
+	 * 保存設定・定数・未検証を分離し、値がない場合は補完しない。
+	 *
+	 * @return void
+	 */
+	public function test_admin_display_separates_reference_values_and_unverified_behavior() {
+		$method = new ReflectionMethod( ODSC_Admin::class, 'render_core_update_settings' );
+		$method->setAccessible( true );
+		$value = ( new ODSC_Collector_WordPress() )->collect_update_settings()['value'];
+		foreach ( array( 'enabled', 'disabled', 'unset', 'custom' ) as $saved ) {
+			$value['core_auto_update_details']['saved_options']['major'] = $saved;
+			ob_start();
+			$method->invoke( ODSC_Admin::get_instance(), $value );
+			$html = (string) ob_get_clean();
+			$this->assertStringContainsString( 'メジャー更新の保存設定', $html );
+			$this->assertStringContainsString( 'マイナー更新の保存設定', $html );
+			$this->assertStringContainsString( '自動更新の最終動作', $html );
+			$this->assertStringContainsString( '未検証', $html );
+			$this->assertStringContainsString( '未保存時の既定値を含みます', $html );
+			$this->assertStringNotContainsString( 'マイナー更新のみを許可する指定', $html );
+		}
+		$value['core_auto_update_details']['saved_options']['major'] = '<script>invalid</script>';
+		$value['core_auto_update_details']['constant_policy']        = '<script>invalid</script>';
+		ob_start();
+		$method->invoke( ODSC_Admin::get_instance(), $value );
+		$html = (string) ob_get_clean();
+		$this->assertStringNotContainsString( '<script>', $html );
+		foreach ( array( null, array() ) as $missing ) {
+			ob_start();
+			$method->invoke( ODSC_Admin::get_instance(), $missing );
+			$this->assertSame( '', ob_get_clean() );
+		}
+	}
 }

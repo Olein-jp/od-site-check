@@ -222,3 +222,32 @@
 	display: inline-block;
 	padding: .4em;
 }
+
+.odsc-core-update-settings {
+	margin-top: 16px;
+	padding: 12px;
+	background: #f6f7f7;
+}
+
+.odsc-core-update-settings h3 {
+	margin: 0 0 12px;
+}
+
+.odsc-core-update-settings dt {
+	font-weight: 600;
+	margin-top: 8px;
+}
+
+.odsc-core-update-settings dd {
+	margin: 2px 0 0;
+}
+
+@media screen and (max-width: 782px) {
+	.odsc-card .odsc-results-list li[data-odsc-result-id="WP-02"] {
+		flex-direction: column;
+	}
+
+	.odsc-results-list li[data-odsc-result-id="WP-02"] .odsc-result-detail {
+		width: 100%;
+	}
+}
