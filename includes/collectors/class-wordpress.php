@@ -57,11 +57,75 @@ final class ODSC_Collector_WordPress {
 			'wordpress_configuration',
 			array(
 				'core_auto_update'         => $setting,
+				'core_auto_update_details' => $this->collect_core_auto_update_details( $setting ),
 				'file_modifications_off'   => defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS,
 				'cached_update_checked'    => null !== $last_checked,
 				'cached_update_checked_at' => $last_checked ? wp_date( DATE_RFC3339, $last_checked ) : null,
 			),
-			__( '更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。', 'od-site-check' ) . ( in_array( $setting, array( 'wordpress_default', 'custom' ), true ) ? ' ' . __( '定数からコアの自動更新設定を判定できません。管理画面の保存値による補完は行っていません。', 'od-site-check' ) : '' )
+			__( '更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。', 'od-site-check' ) . ( in_array( $setting, array( 'wordpress_default', 'custom' ), true ) ? ' ' . __( '定数からコアの自動更新設定を判定できません。既存の定数判別値は保存設定で補完せず、保存設定等は別の詳細情報に記録しています。', 'od-site-check' ) : '' )
+		);
+	}
+
+	/**
+	 * 保存設定・定数・フックの存在を分離し、静的な指定だけを記録する。
+	 *
+	 * @param string $constant_policy 既存の定数による分類.
+	 * @return array<string, mixed>
+	 */
+	private function collect_core_auto_update_details( $constant_policy ) {
+		$saved  = array();
+		$policy = array();
+		foreach ( array( 'major', 'minor', 'dev' ) as $type ) {
+			$value           = get_site_option( 'auto_update_core_' . $type, 'major' === $type ? 'unset' : 'enabled' );
+			$saved[ $type ]  = in_array( $value, array( 'enabled', 'disabled', 'unset' ), true ) ? $value : 'custom';
+			$policy[ $type ] = in_array( $saved[ $type ], array( 'enabled', 'disabled' ), true ) ? $saved[ $type ] : 'unknown';
+		}
+
+		if ( 'wordpress_default' !== $constant_policy ) {
+			$policies = array(
+				'all'      => array(
+					'major' => 'enabled',
+					'minor' => 'enabled',
+					'dev'   => 'enabled',
+				),
+				'disabled' => array(
+					'major' => 'disabled',
+					'minor' => 'disabled',
+					'dev'   => 'disabled',
+				),
+				'minor'    => array(
+					'major' => 'disabled',
+					'minor' => 'enabled',
+					'dev'   => 'disabled',
+				),
+				'custom'   => array(
+					'major' => 'unknown',
+					'minor' => 'unknown',
+					'dev'   => 'unknown',
+				),
+			);
+			$policy   = $policies[ $constant_policy ];
+		}
+
+		$filters = array();
+		foreach ( array( 'automatic_updater_disabled', 'allow_major_auto_core_updates', 'allow_minor_auto_core_updates', 'allow_dev_auto_core_updates', 'auto_update_core' ) as $hook ) {
+			$filters[ $hook ] = (bool) has_filter( $hook );
+		}
+		foreach ( array_keys( $policy ) as $type ) {
+			if ( $filters['automatic_updater_disabled'] || $filters['auto_update_core'] || $filters[ 'allow_' . $type . '_auto_core_updates' ] ) {
+				$policy[ $type ] = 'unknown';
+			}
+		}
+
+		return array(
+			'saved_options'               => $saved,
+			'option_source'               => 'wordpress_site_options',
+			'constant_policy'             => $constant_policy,
+			'global_disable_constant'     => (bool) ( defined( 'AUTOMATIC_UPDATER_DISABLED' ) && AUTOMATIC_UPDATER_DISABLED ),
+			'registered_filters'          => $filters,
+			'declared_policy'             => $policy,
+			'effective_behavior_verified' => false,
+			'limitation'                  => __( '保存設定（参照時の既定値を含む）・定数および登録フィルターの有無のみ。実際の更新可否や成功を保証しません。ファイル変更制限・インストール状態・VCS等の動作条件は網羅していません。', 'od-site-check' ),
 		);
 	}
 

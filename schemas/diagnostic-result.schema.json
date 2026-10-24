@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.3.json",
+  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.4.json",
   "title": "OD Site Check diagnostic result",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "collector", "collected_at", "site", "results", "hearing"],
   "properties": {
-    "schema_version": { "const": "1.3" },
+    "schema_version": { "const": "1.4" },
     "collector": {
       "type": "object",
       "additionalProperties": false,
@@ -1080,11 +1080,145 @@
       "type": "object", "additionalProperties": false, "required": ["version"],
       "properties": { "version": { "type": "string" } }
     },
+    "coreAutoUpdateDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "saved_options",
+        "option_source",
+        "constant_policy",
+        "global_disable_constant",
+        "registered_filters",
+        "declared_policy",
+        "effective_behavior_verified",
+        "limitation"
+      ],
+      "properties": {
+        "saved_options": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "major",
+            "minor",
+            "dev"
+          ],
+          "properties": {
+            "major": {
+              "enum": [
+                "enabled",
+                "disabled",
+                "unset",
+                "custom"
+              ]
+            },
+            "minor": {
+              "enum": [
+                "enabled",
+                "disabled",
+                "unset",
+                "custom"
+              ]
+            },
+            "dev": {
+              "enum": [
+                "enabled",
+                "disabled",
+                "unset",
+                "custom"
+              ]
+            }
+          }
+        },
+        "option_source": {
+          "const": "wordpress_site_options"
+        },
+        "constant_policy": {
+          "enum": [
+            "wordpress_default",
+            "disabled",
+            "all",
+            "minor",
+            "custom"
+          ]
+        },
+        "global_disable_constant": {
+          "type": "boolean"
+        },
+        "registered_filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "automatic_updater_disabled",
+            "allow_major_auto_core_updates",
+            "allow_minor_auto_core_updates",
+            "allow_dev_auto_core_updates",
+            "auto_update_core"
+          ],
+          "properties": {
+            "automatic_updater_disabled": {
+              "type": "boolean"
+            },
+            "allow_major_auto_core_updates": {
+              "type": "boolean"
+            },
+            "allow_minor_auto_core_updates": {
+              "type": "boolean"
+            },
+            "allow_dev_auto_core_updates": {
+              "type": "boolean"
+            },
+            "auto_update_core": {
+              "type": "boolean"
+            }
+          }
+        },
+        "declared_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "major",
+            "minor",
+            "dev"
+          ],
+          "properties": {
+            "major": {
+              "enum": [
+                "enabled",
+                "disabled",
+                "unknown"
+              ]
+            },
+            "minor": {
+              "enum": [
+                "enabled",
+                "disabled",
+                "unknown"
+              ]
+            },
+            "dev": {
+              "enum": [
+                "enabled",
+                "disabled",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "effective_behavior_verified": {
+          "const": false
+        },
+        "limitation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "wp02": {
       "type": "object", "additionalProperties": false,
-      "required": ["core_auto_update", "file_modifications_off", "cached_update_checked", "cached_update_checked_at"],
+      "required": ["core_auto_update", "file_modifications_off", "cached_update_checked", "cached_update_checked_at", "core_auto_update_details"],
       "properties": {
         "core_auto_update": { "enum": ["wordpress_default", "disabled", "all", "minor", "custom"] },
+        "core_auto_update_details": { "$ref": "#/definitions/coreAutoUpdateDetails" },
         "file_modifications_off": { "type": "boolean" },
         "cached_update_checked": { "type": "boolean" },
         "cached_update_checked_at": { "$ref": "#/definitions/nullableString" }
