@@ -2,6 +2,7 @@ od-site-check.php
 uninstall.php
 readme.txt
 README.md
+docs/json-output.md
 assets/admin.css
 assets/admin.js
 includes/class-admin.php
@@ -15,3 +16,11 @@ includes/collectors/class-themes.php
 includes/collectors/class-users.php
 includes/collectors/class-wordpress.php
 schemas/diagnostic-result.schema.json
+includes/class-hearing.php
+assets/hearing.js
+assets/export.js
+schemas/hearing-1.0.json
+docs/hearing.md
+docs/hearing-acceptance.md
+docs/samples/hearing-no.json
+docs/samples/hearing-yes.json

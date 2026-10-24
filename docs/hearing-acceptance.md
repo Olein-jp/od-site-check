@@ -1,6 +1,6 @@
 # 定型ヒアリング統合 v2.0 検証記録
 
-確認日: 2026-10-24。基準: 旧版0.3.0、診断Schema 1.2 → 新Schema 1.3／hearing 1.0。
+確認日: 2026-10-24。基準: 旧版0.3.0、診断Schema 1.2 → プラグイン0.4.0、Schema 1.3／hearing 1.0。
 
 開発側の確認記録。利用者による正式な受入、およびスクリーンリーダー実機の音声確認は未実施。この記録だけで正式リリース可とはしない。残る受入は親Issue #17で管理する。
 
@@ -52,7 +52,11 @@ NodeではHTTP失敗・直接出力呼出し時の未回答・ダウンロード
 - `composer run lint`: 成功。
 - `npm run test:js`: 7テスト成功。
 - `npm run test:compat`: WordPress 7.1／PHP 7.4.33、WordPress 7.1.3／PHP 8.3.36の両環境で各64テスト・1022 assertions成功。
-- ZIPの生成・許可リスト・新規導入は#23で確認して追記する。
+- `npm run test:php`: 0.4.0の最終構成（配布サンプル2件のSchema検証を含む）で65テスト・1026 assertions成功。
+- `node bin/verify-release-version.mjs v0.4.0`: 全管理箇所のバージョン一致。
+- `npm run build:zip` / `npm run verify:zip`: ZIP整合性・許可リスト一致・開発ファイル非混入の検査に成功。
+- `npm run test:smoke`: 新規WordPress 7.1／PHP 7.4へZIPを導入し、有効化・診断・全20問未選択／両ボタンdisabled・13問／20問回答の統合JSON・ダウンロードの同一バイト列を確認。
+- 最終ZIPへこの検証記録を反映して再生成。導入確認以降の変更は検証記録のみで、PHP／JSの実行コードは同一。
 
 ## 正式リリース前の利用者受入
 

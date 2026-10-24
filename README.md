@@ -8,18 +8,29 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 - PHP、データベース、メモリなどの運用環境情報の収集
 - 22項目それぞれの取得状況を、アイコンと状態名で一覧表示
 - WordPressから確認できない6つの運用項目を、ヒアリング前の確認事項として案内
-- 診断結果JSONのコピーとダウンロード
+- 固定20問の定型ヒアリング（H-05の回答により13問または20問）
+- 全対象設問への明示回答後に、診断と自己申告を統合したJSONをコピー・ダウンロード
 - サイトのドメインを含むJSONファイル名の生成
 
-診断結果の自動評価、サイト設定の変更、更新、修復、バックアップ、外部送信は行いません。診断結果はサーバーに保存せず、ダウンロード時に権限・Nonce・署名を再確認します。
+診断結果の自動評価、サイト設定の変更、更新、修復、バックアップ、外部送信は行いません。診断結果と回答をサーバーやブラウザの永続領域へ保存せず、明示的な出力操作時だけ同じサイトのサーバーで権限・Nonce・署名・回答を再確認します。外部へ自動送信しません。
 
 ## 診断範囲
 
+出力する全22項目と各フィールドの型・取り得る値・意味・不明になる条件は、[診断結果JSONの出力項目一覧](docs/json-output.md)を参照してください。
+
 `WP-15`の`search_engine_visible`は、WordPressの「検索エンジンがサイトをインデックスしないようにする」設定（`blog_public`）だけを表します。`true`でも、検索エンジンへの登録、クロール、インデックス済みかどうか、検索順位、SEO上の問題がないことは確認していません。この値をSEOの正常判定には使用しません。外部の検索エンジンやAPIへの照会も行いません。
 
-### プラグインの対応情報（JSON Schema 1.1）
+### 定型ヒアリング（JSON Schema 1.3／hearing 1.0）
 
-`WP-07`（有効）と `WP-08`（無効）の各プラグインに `compatibility` を追加します。既存の名前・識別子・バージョン・更新情報は維持します。構造変更に伴い `schema_version` は `1.2`、Schema の ID は `diagnostic-result-1.2.json` です。厳密な Schema 検証を行う利用側も更新してください。
+ヒアリングは自己申告です。既存の自動取得結果22件とは区別し、`hearing` に回答コードだけを記録します。危険度・スコア・優先度を算出せず、OPS項目の `manual_required` も書き換えません。
+
+回答は保存されません。再読み込みで消去されます。離脱・再診断時にも破棄します。H-05を「取得している」から変更すると条件付き7問の回答を消去し、戻しても復元しません。コピー／ダウンロード時だけ同じサイトへ検証リクエストを送り、同じ完成文字列と `completed_at` を共有します。回答が変われば以前の出力を破棄します。
+
+[質問一覧とバージョン管理](docs/hearing.md)、[固定の質問定義データ](schemas/hearing-1.0.json)、[13問回答のサンプル](docs/samples/hearing-no.json)、[20問回答のサンプル](docs/samples/hearing-yes.json)を参照してください。後続のレポート生成側も `hearing.schema_version` に対応する同じ定義を使用してください。
+
+### プラグインの対応情報（JSON Schema 1.2で追加）
+
+`WP-07`（有効）と `WP-08`（無効）の各プラグインに `compatibility` を追加します。既存の名前・識別子・バージョン・更新情報は維持します。この情報はSchema 1.2で追加しました。現行の `schema_version` は `1.3`、SchemaのIDは `diagnostic-result-1.3.json` です。厳密な Schema 検証を行う利用側も更新してください。
 
 - `installed`: インストール済み版の情報。`version` は現在版、`requires_wp` / `requires_php` はプラグインヘッダーの最低要件、`tested_wp` は同梱 `readme.txt` の `Tested up to` です。
 - `update`: 保存済み更新キャッシュに記録された更新先の情報。`version` は更新先、`requires_wp` / `requires_php` / `tested_wp` はそれぞれキャッシュの `requires` / `requires_php` / `tested` です。現在版の値で欠落を補いません。
@@ -60,9 +71,10 @@ WordPressサイトの構成・運用環境を読み取り、オレインデザ�
 2. 「ツール > OD サイト診断」を開きます。
 3. 収集内容を確認して「サイトの状態を確認する」を押します。
 4. 項目別の取得状況と、ヒアリング前の確認事項を確認します。
-5. JSONをコピーするか、`od-site-check-[ドメイン]-[日時].json`として保存します。
-6. JSONをオレインデザインへ送付します。
-7. 調査終了後、プラグインを無効化・削除します。
+5. 「定型ヒアリング」に回答します。H-05が「取得している」なら20問、それ以外なら13問が対象です。「わからない」も明示的に選ぶと回答済みになります。
+6. 全対象設問に回答したら、JSONをコピーするか、`od-site-check-[ドメイン]-[日時].json`として保存します。
+7. JSONをオレインデザインへ送付します。ログイン名・構成情報を含むため、送付先と保管方法を確認してください。
+8. 調査終了後、プラグインを無効化・削除します。
 
 ## 開発環境
 
@@ -83,13 +95,14 @@ WordPressは <http://localhost:8888> で起動します。
 
 ```sh
 composer run lint
+npm run test:js
 npm run test:php
 npm run build:zip
 npm run verify:zip
 npm run env:stop
 ```
 
-JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.3.0.zip` に生成されます。
+JSON Schemaは `schemas/diagnostic-result.schema.json`、配布ZIPは `build/od-site-check-0.4.0.zip` に生成されます。
 
 ### 対応環境の検証
 
@@ -119,12 +132,12 @@ npm run test:smoke
 開発者は変更を main に取り込んだ後、プラグインヘッダー・`ODSC_VERSION`・readme の Stable tag・package.json・package-lock.json のバージョンを揃えたコミットに `vX.Y.Z` タグを付け、origin に push します。GitHub Actions がバージョン一致、ZIP の整合性、配布ファイルの許可リストを検証した後にリリースを公開します。既存のタグ・リリースは上書きせず、修正時は新しいバージョンを公開してください。公開前の静的チェックと WordPress 上の動作確認は開発者が実行します。
 
 ```sh
-node bin/verify-release-version.mjs v0.3.0
-git tag v0.3.0
-git push origin v0.3.0
+node bin/verify-release-version.mjs v0.4.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
-### 自動更新設定とアカウント一覧（JSON Schema 1.2）
+### 自動更新設定とアカウント一覧（JSON Schema 1.2で追加）
 
 `WP-02` は定数のみでコアの自動更新を判定します。`wordpress_default`（定数未定義）・`custom` は判定不能で、取得状態は `partial` です。管理画面の保存値で補完しません。
 

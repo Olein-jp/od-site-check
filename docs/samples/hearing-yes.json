@@ -1,0 +1,609 @@
+{
+    "schema_version": "1.3",
+    "collector": {
+        "name": "OD Site Check",
+        "version": "0.4.0"
+    },
+    "collected_at": "2026-10-24T09:30:00+09:00",
+    "site": {
+        "url": "https://example.com/",
+        "multisite": false
+    },
+    "results": [
+        {
+            "id": "WP-01",
+            "status": "collected",
+            "source": "wordpress_core",
+            "value": {
+                "version": "7.1.3"
+            },
+            "note": null,
+            "error_code": null
+        },
+        {
+            "id": "WP-02",
+            "status": "partial",
+            "source": "wordpress_configuration",
+            "value": {
+                "core_auto_update": "wordpress_default",
+                "file_modifications_off": false,
+                "cached_update_checked": true,
+                "cached_update_checked_at": "2026-10-24T03:25:34+00:00"
+            },
+            "note": "更新情報は既存のキャッシュのみを参照し、外部への再確認は行っていません。 定数からコアの自動更新設定を判定できません。管理画面の保存値による補完は行っていません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-03",
+            "status": "collected",
+            "source": "wordpress_site_health_allowlist",
+            "value": {
+                "environment_type": "local",
+                "wp_debug": true,
+                "wp_debug_display": true,
+                "wp_debug_log": false,
+                "tests_attempted": 11,
+                "tests_completed": 11,
+                "status_counts": {
+                    "good": 9,
+                    "recommended": 2,
+                    "critical": 0
+                },
+                "tests": [
+                    {
+                        "id": "php_extensions",
+                        "status": "good",
+                        "label": "Required and recommended modules are installed",
+                        "category": "パフォーマンス"
+                    },
+                    {
+                        "id": "php_default_timezone",
+                        "status": "good",
+                        "label": "PHP default timezone is valid",
+                        "category": "パフォーマンス"
+                    },
+                    {
+                        "id": "php_sessions",
+                        "status": "good",
+                        "label": "No PHP sessions detected",
+                        "category": "パフォーマンス"
+                    },
+                    {
+                        "id": "sql_server",
+                        "status": "good",
+                        "label": "SQL server is up to date",
+                        "category": "パフォーマンス"
+                    },
+                    {
+                        "id": "ssl_support",
+                        "status": "good",
+                        "label": "Your site can communicate securely with other services",
+                        "category": "セキュリティ"
+                    },
+                    {
+                        "id": "http_requests",
+                        "status": "good",
+                        "label": "HTTP requests seem to be working as expected",
+                        "category": "パフォーマンス"
+                    },
+                    {
+                        "id": "debug_enabled",
+                        "status": "recommended",
+                        "label": "Your site is set to display errors to site visitors",
+                        "category": "セキュリティ"
+                    },
+                    {
+                        "id": "file_uploads",
+                        "status": "good",
+                        "label": "Files can be uploaded",
+                        "category": "パフォーマンス"
+                    },
+                    {
+                        "id": "insecure_registration",
+                        "status": "good",
+                        "label": "Open Registration with privileged default role",
+                        "category": "セキュリティ"
+                    },
+                    {
+                        "id": "search_engine_visibility",
+                        "status": "good",
+                        "label": "Search engine indexing is enabled.",
+                        "category": "プライバシー"
+                    },
+                    {
+                        "id": "opcode_cache",
+                        "status": "recommended",
+                        "label": "Opcode cache is not enabled",
+                        "category": "パフォーマンス"
+                    }
+                ],
+                "execution_failed_tests": []
+            },
+            "note": "外部通信や書き込みを行わない、安全なサイトヘルステスト11件を取得しました。サイトヘルスの全項目ではありません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-04",
+            "status": "collected",
+            "source": "wordpress_theme_api",
+            "value": {
+                "installed_themes": [
+                    {
+                        "name": "Twenty Eleven",
+                        "stylesheet": "twentyeleven",
+                        "version": "5.2",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Fifteen",
+                        "stylesheet": "twentyfifteen",
+                        "version": "4.3",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Fourteen",
+                        "stylesheet": "twentyfourteen",
+                        "version": "4.6",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Nineteen",
+                        "stylesheet": "twentynineteen",
+                        "version": "3.4",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Seventeen",
+                        "stylesheet": "twentyseventeen",
+                        "version": "4.2",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Sixteen",
+                        "stylesheet": "twentysixteen",
+                        "version": "3.9",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Ten",
+                        "stylesheet": "twentyten",
+                        "version": "4.7",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Thirteen",
+                        "stylesheet": "twentythirteen",
+                        "version": "4.7",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twelve",
+                        "stylesheet": "twentytwelve",
+                        "version": "4.9",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twenty",
+                        "stylesheet": "twentytwenty",
+                        "version": "3.2",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twenty-Five",
+                        "stylesheet": "twentytwentyfive",
+                        "version": "1.5",
+                        "is_active": true,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twenty-Four",
+                        "stylesheet": "twentytwentyfour",
+                        "version": "1.6",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twenty-One",
+                        "stylesheet": "twentytwentyone",
+                        "version": "2.9",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twenty-Three",
+                        "stylesheet": "twentytwentythree",
+                        "version": "1.7",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    },
+                    {
+                        "name": "Twenty Twenty-Two",
+                        "stylesheet": "twentytwentytwo",
+                        "version": "2.2",
+                        "is_active": false,
+                        "parent_stylesheet": null,
+                        "auto_update_enabled": false
+                    }
+                ],
+                "name": "Twenty Twenty-Five",
+                "stylesheet": "twentytwentyfive",
+                "version": "1.5",
+                "is_child_theme": false,
+                "parent_name": null,
+                "parent_version": null,
+                "update_cache_available": true,
+                "update_cache_checked_at": "2026-10-24T03:25:35+00:00",
+                "update_available": false,
+                "new_version": null
+            },
+            "note": "更新情報は既存のキャッシュのみを参照しています。 自動更新は保存された設定であり、フィルター等の上書きや更新の実行・成功を保証しません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-07",
+            "status": "collected",
+            "source": "wordpress_plugin_api",
+            "value": {
+                "count": 1,
+                "update_cache_available": true,
+                "update_cache_checked_at": "2026-10-24T03:25:34+00:00",
+                "plugins": [
+                    {
+                        "name": "OD Site Check",
+                        "identifier": "od-site-check/od-site-check.php",
+                        "version": "0.4.0",
+                        "activation_state": "active",
+                        "auto_update_enabled": false,
+                        "update_available": false,
+                        "new_version": null,
+                        "compatibility": {
+                            "installed": {
+                                "version": "0.4.0",
+                                "requires_wp": "7.1",
+                                "requires_php": "7.4",
+                                "tested_wp": "7.1",
+                                "tested_php": null,
+                                "source": "installed_plugin_headers_and_readme",
+                                "checked_at": null
+                            },
+                            "update": null
+                        }
+                    }
+                ]
+            },
+            "note": "更新情報は既存のキャッシュのみを参照しています。 自動更新は保存された設定であり、フィルター等の上書きや更新の実行・成功を保証しません。対応情報は作者の記載に基づき、動作保証ではありません。最低要件は対応上限ではなく、WPの動作確認済みバージョンを超える場合は事前検証が必要です。PHPの動作確認上限は不明のため提供元へ確認してください。更新先は保存済みキャッシュの情報であり、最新公開版の確認を意味しません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-08",
+            "status": "collected",
+            "source": "wordpress_plugin_api",
+            "value": {
+                "count": 1,
+                "update_cache_available": true,
+                "update_cache_checked_at": "2026-10-24T03:25:34+00:00",
+                "plugins": [
+                    {
+                        "name": "Hello Dolly",
+                        "identifier": "hello.php",
+                        "version": "1.7.2",
+                        "activation_state": "inactive",
+                        "auto_update_enabled": false,
+                        "update_available": false,
+                        "new_version": null,
+                        "compatibility": {
+                            "installed": {
+                                "version": "1.7.2",
+                                "requires_wp": null,
+                                "requires_php": null,
+                                "tested_wp": null,
+                                "tested_php": null,
+                                "source": "installed_plugin_headers_and_readme",
+                                "checked_at": null
+                            },
+                            "update": null
+                        }
+                    }
+                ]
+            },
+            "note": "更新情報は既存のキャッシュのみを参照しています。 自動更新は保存された設定であり、フィルター等の上書きや更新の実行・成功を保証しません。対応情報は作者の記載に基づき、動作保証ではありません。最低要件は対応上限ではなく、WPの動作確認済みバージョンを超える場合は事前検証が必要です。PHPの動作確認上限は不明のため提供元へ確認してください。更新先は保存済みキャッシュの情報であり、最新公開版の確認を意味しません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-09",
+            "status": "partial",
+            "source": "wordpress_registered_components",
+            "value": {
+                "active_theme_stylesheet": "twentytwentyfive",
+                "active_theme_is_child": false,
+                "mu_plugin_count": 0,
+                "mu_plugin_identifiers": [],
+                "dropin_count": 0,
+                "dropin_identifiers": [],
+                "source_code_scanned": false
+            },
+            "note": "子テーマ、MUプラグイン、ドロップインの有無だけを確認しています。コードの内容確認や、独自開発かどうかの断定はしていません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-10",
+            "status": "collected",
+            "source": "wordpress_update_cache",
+            "value": {
+                "core_updates_pending": 0,
+                "plugin_updates_pending": 0,
+                "theme_updates_pending": 0,
+                "required_update_caches_present": true
+            },
+            "note": "保留件数とキャッシュの存在は、保存済みのWordPress更新キャッシュだけに基づきます。外部サービスへ照会しておらず、最新情報の確認完了を意味しません。更新理由や互換性も判定していません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-11",
+            "status": "collected",
+            "source": "wordpress_user_counts",
+            "value": {
+                "total_users": 1,
+                "role_counts": {
+                    "administrator": 1,
+                    "none": 0
+                },
+                "users": [
+                    {
+                        "user_login": "example_admin",
+                        "roles": [
+                            "administrator"
+                        ]
+                    }
+                ],
+                "users_error_code": null
+            },
+            "note": "アカウント名（ログイン名）と権限グループを収集しました。氏名、メールアドレス、ユーザーID、パスワードは出力しません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-12",
+            "status": "collected",
+            "source": "wordpress_plugin_api",
+            "value": {
+                "detected_plugins": []
+            },
+            "note": "プラグインの存在だけを確認しています。MFAやログイン保護の適用状況は別途確認が必要です。",
+            "error_code": null
+        },
+        {
+            "id": "WP-13",
+            "status": "collected",
+            "source": "wordpress_options_allowlist",
+            "value": {
+                "home_url": "https://example.com/",
+                "site_url": "https://example.com/",
+                "timezone_string": "",
+                "gmt_offset": 0,
+                "locale": "en_US",
+                "permalink_structure": "/%year%/%monthnum%/%day%/%postname%/"
+            },
+            "note": "管理者メールアドレスなど、診断に不要な設定は収集していません。",
+            "error_code": null
+        },
+        {
+            "id": "WP-15",
+            "status": "collected",
+            "source": "wordpress_options_allowlist",
+            "value": {
+                "show_on_front": "posts",
+                "front_page_configured": false,
+                "posts_page_configured": false,
+                "search_engine_visible": true
+            },
+            "note": "search_engine_visibleがtrueの場合も、検索エンジンによるインデックスを抑制するWordPress設定が無効であることだけを意味します。検索エンジンへの登録、クロール、インデックス済みかどうか、検索順位、SEO評価は確認していません。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-01",
+            "status": "manual_required",
+            "source": null,
+            "value": null,
+            "note": "サーバー契約内容は別途確認が必要です。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-03",
+            "status": "collected",
+            "source": "php_runtime",
+            "value": {
+                "version": "8.3.36",
+                "sapi": "cli"
+            },
+            "note": null,
+            "error_code": null
+        },
+        {
+            "id": "OPS-04",
+            "status": "collected",
+            "source": "wordpress_database_api",
+            "value": {
+                "type": "MariaDB",
+                "version": "12.3.3"
+            },
+            "note": "データベース名、接続先、ユーザー名、パスワードは収集していません。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-05",
+            "status": "collected",
+            "source": "php_runtime",
+            "value": {
+                "php_memory_limit": "-1",
+                "wp_memory_limit": "40M",
+                "wp_max_memory_limit": "256M",
+                "max_execution_time": 0,
+                "upload_max_filesize": "1G",
+                "post_max_size": "1G",
+                "server_disk_checked": false
+            },
+            "note": "表示値はPHPとWordPressの制限です。サーバー全体の空き容量は確認していません。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-10",
+            "status": "manual_required",
+            "source": null,
+            "value": null,
+            "note": "バックアップ対象は別途確認が必要です。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-11",
+            "status": "partial",
+            "source": "wordpress_plugin_api",
+            "value": {
+                "detected_plugins": []
+            },
+            "note": "バックアップ関連プラグインの有無だけを確認しています。設定内容、実行履歴、復元できるかどうかは確認していません。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-12",
+            "status": "manual_required",
+            "source": null,
+            "value": null,
+            "note": "バックアップ頻度は別途確認が必要です。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-14",
+            "status": "manual_required",
+            "source": null,
+            "value": null,
+            "note": "バックアップ取得履歴は別途確認が必要です。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-18",
+            "status": "manual_required",
+            "source": null,
+            "value": null,
+            "note": "更新作業の運用方法は別途確認が必要です。",
+            "error_code": null
+        },
+        {
+            "id": "OPS-19",
+            "status": "manual_required",
+            "source": null,
+            "value": null,
+            "note": "障害対応の体制は別途確認が必要です。",
+            "error_code": null
+        }
+    ],
+    "hearing": {
+        "schema_version": "1.0",
+        "completed_at": "2026-10-24T09:35:00+09:00",
+        "answers": {
+            "H-01": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-02": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-03": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-04": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-05": {
+                "status": "answered",
+                "answer": "yes"
+            },
+            "H-06": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-07": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-08": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-09": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-10": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-11": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-12": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-13": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-14": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-15": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-16": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-17": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-18": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-19": {
+                "status": "answered",
+                "answer": "unknown"
+            },
+            "H-20": {
+                "status": "answered",
+                "answer": "unknown"
+            }
+        }
+    }
+}

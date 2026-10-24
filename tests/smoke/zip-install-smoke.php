@@ -60,7 +60,85 @@ function odsc_run_zip_smoke_test() {
 		WP_CLI::error( 'The generated JSON preview was not rendered.' );
 	}
 
-	WP_CLI::success( 'The installed ZIP activated and completed the administrator diagnostic workflow.' );
+	// 終了とヘッダーのみを捕捉し、インストールしたZIPの実ハンドラを検査する.
+	require_once __DIR__ . '/../support/class-odsc-test-download-completed.php';
+	require_once __DIR__ . '/../support/class-odsc-test-exporter.php';
+	$odsc_dom      = new DOMDocument();
+	$odsc_previous = libxml_use_internal_errors( true );
+	$odsc_dom->loadHTML( $odsc_html );
+	libxml_clear_errors();
+	libxml_use_internal_errors( $odsc_previous );
+	$odsc_xpath = new DOMXPath( $odsc_dom );
+	if ( 20 !== $odsc_xpath->query( '//fieldset' )->length ||
+		0 !== $odsc_xpath->query( '//input[@type="radio"][@checked]' )->length ||
+		2 !== $odsc_xpath->query( '//button[@id="odsc-copy-json" or @id="odsc-download-json"][@disabled]' )->length ) {
+		WP_CLI::error( '固定20問・未選択・出力ボタンの初期無効化を確認できません。' );
+	}
+	$odsc_exporter = new ODSC_Test_Exporter();
+	$odsc_property = new ReflectionProperty( ODSC_Admin::class, 'exporter' );
+	$odsc_property->setAccessible( true );
+	$odsc_property->setValue( $odsc_admin, $odsc_exporter );
+	$odsc_result_property = new ReflectionProperty( ODSC_Admin::class, 'result' );
+	$odsc_result_property->setAccessible( true );
+	$odsc_result     = $odsc_result_property->getValue( $odsc_admin );
+	$odsc_json       = $odsc_exporter->encode( $odsc_result );
+	$odsc_definition = ODSC_Hearing::definition();
+	if ( ! ODSC_Hearing::has_definitions() ) {
+		WP_CLI::error( '同梱の質問定義を読み込めません。' );
+	}
+	foreach ( array( 'no', 'yes' ) as $odsc_backup ) {
+		$odsc_rows = array();
+		foreach ( $odsc_definition['questions'] as $odsc_question ) {
+			$odsc_applicable = null === $odsc_question['condition'] || 'yes' === $odsc_backup;
+			$odsc_rows[]     = array(
+				$odsc_question['id'],
+				$odsc_applicable ? 'answered' : 'not_applicable',
+				$odsc_applicable ? ( 'H-05' === $odsc_question['id'] ? $odsc_backup : 'unknown' ) : null,
+			);
+		}
+		$odsc_prepare_nonce = wp_create_nonce( 'odsc_prepare_result' );
+		$_POST              = array(
+			'odsc_payload'        => base64_encode( $odsc_json ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- 署名済みJSONの転送。
+			'odsc_signature'      => $odsc_exporter->sign( $odsc_json ),
+			'odsc_answers'        => wp_slash( wp_json_encode( $odsc_rows ) ),
+			'_odsc_prepare_nonce' => $odsc_prepare_nonce,
+		);
+		$_REQUEST           = array( '_odsc_prepare_nonce' => $odsc_prepare_nonce );
+		ob_start();
+		try {
+			$odsc_admin->handle_prepare();
+		} catch ( ODSC_Test_Download_Completed $odsc_exception ) {
+			$odsc_response = json_decode( ob_get_contents(), true );
+		} finally {
+			ob_end_clean();
+		}
+		$odsc_complete = json_decode( $odsc_response['json'], true );
+		if ( ! $odsc_exporter->is_valid_payload( $odsc_complete ) ||
+			20 !== count( $odsc_complete['hearing']['answers'] ) ||
+			json_decode( $odsc_json, true )['results'] !== $odsc_complete['results'] ) {
+			WP_CLI::error( '統合JSONの形式または既存22項目の維持を確認できません。' );
+		}
+		$odsc_download_nonce = wp_create_nonce( 'odsc_download_result' );
+		$_POST               = array(
+			'odsc_payload'         => base64_encode( $odsc_response['json'] ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- 署名済みJSONの転送。
+			'odsc_signature'       => $odsc_response['signature'],
+			'_odsc_download_nonce' => $odsc_download_nonce,
+		);
+		$_REQUEST            = array( '_odsc_download_nonce' => $odsc_download_nonce );
+		ob_start();
+		try {
+			$odsc_admin->handle_download();
+		} catch ( ODSC_Test_Download_Completed $odsc_exception ) {
+			$odsc_downloaded = ob_get_contents();
+		} finally {
+			ob_end_clean();
+		}
+		if ( $odsc_response['json'] !== $odsc_downloaded ) {
+			WP_CLI::error( '確定したJSONとダウンロードが一致しません。' );
+		}
+	}
+
+	WP_CLI::success( '配布ZIPの有効化・診断・13問／20問回答の統合出力とダウンロード一致を確認しました。' );
 }
 
 odsc_run_zip_smoke_test();
