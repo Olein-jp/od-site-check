@@ -196,3 +196,29 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+.odsc-wrap [hidden] {
+	display: none !important;
+}
+
+.odsc-question {
+	border-top: 1px solid #dcdcde;
+	margin: 1.5em 0;
+	padding: 1em 0;
+	min-width: 0;
+}
+
+.odsc-answer {
+	display: block;
+	padding: .5em 0;
+}
+
+.odsc-question:focus {
+	outline: 2px solid #2271b1;
+	outline-offset: 4px;
+}
+
+#odsc-hearing-missing a {
+	display: inline-block;
+	padding: .4em;
+}

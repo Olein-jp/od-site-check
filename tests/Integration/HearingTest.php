@@ -129,4 +129,34 @@ class HearingTest extends WP_UnitTestCase {
 		$hearing['schema_version'] = '0.9';
 		$this->assertFalse( ODSC_Hearing::is_valid( $hearing ) );
 	}
+	/**
+	 * 共通定義と画面文面・radioが一致し、初期選択がない。
+	 *
+	 * @return void
+	 */
+	public function test_rendered_questions_match_definition() {
+		$method = new ReflectionMethod( ODSC_Admin::class, 'render_hearing' );
+		$method->setAccessible( true );
+		ob_start();
+		$method->invoke( ODSC_Admin::get_instance() );
+		$html     = (string) ob_get_clean();
+		$dom      = new DOMDocument();
+		$previous = libxml_use_internal_errors( true );
+		$dom->loadHTML( '<?xml encoding="UTF-8">' . $html );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+		$xpath = new DOMXPath( $dom );
+		$this->assertSame( 20, $xpath->query( '//fieldset' )->length );
+		$this->assertSame( 0, $xpath->query( '//input[@checked]' )->length );
+		foreach ( ODSC_Hearing::definition()['questions'] as $question ) {
+			$fieldset = $xpath->query( '//fieldset[@id="odsc-' . $question['id'] . '"]' )->item( 0 );
+			$this->assertStringContainsString( $question['question'], $xpath->evaluate( 'string(.)', $fieldset ) );
+			$this->assertSame( null !== $question['condition'], $fieldset->hasAttribute( 'hidden' ) );
+			$this->assertSame( count( $question['options'] ), $xpath->query( './/input[@type="radio"]', $fieldset )->length );
+			foreach ( $question['options'] as $code => $label ) {
+				$this->assertSame( 1, $xpath->query( './/input[@value="' . $code . '"]', $fieldset )->length );
+				$this->assertStringContainsString( $label, $xpath->evaluate( 'string(.)', $fieldset ) );
+			}
+		}
+	}
 }

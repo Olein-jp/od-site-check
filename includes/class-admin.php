@@ -94,11 +94,13 @@ final class ODSC_Admin {
 		}
 
 		wp_enqueue_style( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.css', array(), ODSC_VERSION );
-		wp_enqueue_script( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.js', array(), ODSC_VERSION, true );
+		wp_enqueue_script( 'odsc-hearing', ODSC_PLUGIN_URL . 'assets/hearing.js', array(), ODSC_VERSION, true );
+		wp_enqueue_script( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.js', array( 'odsc-hearing' ), ODSC_VERSION, true );
 		wp_localize_script(
 			'odsc-admin',
 			'odscAdmin',
 			array(
+				'hearing'      => ODSC_Hearing::definition(),
 				'checking'     => __( '確認しています…', 'od-site-check' ),
 				'checkingNote' => __( 'サイトの情報を確認しています。この画面を閉じずにお待ちください。', 'od-site-check' ),
 				'copied'       => __( 'JSONをコピーしました。', 'od-site-check' ),
@@ -344,18 +346,19 @@ final class ODSC_Admin {
 			</ul>
 		</div>
 
+		<?php $this->render_hearing(); ?>
 		<div class="odsc-card">
 			<h2><?php esc_html_e( '診断結果JSON', 'od-site-check' ); ?></h2>
-			<p><?php esc_html_e( '診断で取得した情報をコピーするか、JSONファイルとしてダウンロードできます。', 'od-site-check' ); ?></p>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="odsc-export-form">
+			<p><?php esc_html_e( '対象のヒアリングにすべて回答すると、診断と自己申告をまとめたJSONを出力できます。', 'od-site-check' ); ?></p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="odsc-export-form" data-diagnostic-valid="<?php echo $exporter->is_valid_diagnostic( $result ) ? '1' : '0'; ?>">
 				<input type="hidden" name="action" value="odsc_download">
 				<input type="hidden" name="odsc_payload" value="<?php echo esc_attr( base64_encode( $json ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes signed JSON for form transport. ?>">
 				<input type="hidden" name="odsc_signature" value="<?php echo esc_attr( $exporter->sign( $json ) ); ?>">
 				<?php wp_nonce_field( 'odsc_download_result', '_odsc_download_nonce' ); ?>
-				<textarea id="odsc-json-preview" class="odsc-json-preview" rows="18" readonly><?php echo esc_textarea( $json ); ?></textarea>
+				<textarea id="odsc-json-preview" class="odsc-json-preview" rows="18" readonly aria-label="<?php esc_attr_e( '出力用JSON', 'od-site-check' ); ?>"></textarea>
 				<div class="odsc-export-actions">
-					<button type="button" id="odsc-copy-json" class="button button-secondary"><?php esc_html_e( 'JSONをコピー', 'od-site-check' ); ?></button>
-					<?php submit_button( __( 'JSONをダウンロード', 'od-site-check' ), 'primary', 'submit', false ); ?>
+					<button type="button" id="odsc-copy-json" class="button button-secondary" disabled><?php esc_html_e( 'JSONをコピー', 'od-site-check' ); ?></button>
+					<button type="submit" id="odsc-download-json" class="button button-primary" disabled><?php esc_html_e( 'JSONをダウンロード', 'od-site-check' ); ?></button>
 				</div>
 				<p id="odsc-copy-status" class="odsc-copy-status" role="status" aria-live="polite"></p>
 			</form>
@@ -364,6 +367,47 @@ final class ODSC_Admin {
 		<div class="odsc-card">
 			<h2><?php esc_html_e( 'ダウンロード後のお願い', 'od-site-check' ); ?></h2>
 			<p><?php esc_html_e( 'ダウンロードしたJSONファイルをオレインデザインへお送りください。調査終了後は、このプラグインを無効化・削除してください。', 'od-site-check' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * 固定定義からアクセシブルな回答欄を描画する。
+	 *
+	 * @return void
+	 */
+	private function render_hearing() {
+		$definition = ODSC_Hearing::definition();
+		?>
+		<div class="odsc-card" id="odsc-hearing">
+			<h2><?php esc_html_e( '定型ヒアリング', 'od-site-check' ); ?></h2>
+			<p><?php esc_html_e( 'ヒアリングは自己申告です', 'od-site-check' ); ?></p>
+			<p><?php esc_html_e( '回答は保存されません。再読み込みで消去されます', 'od-site-check' ); ?></p>
+			<p><?php esc_html_e( '出力するJSONにはアカウントのログイン名とサイト構成情報を含みます。送付先と保管方法にご注意ください。', 'od-site-check' ); ?></p>
+			<p id="odsc-hearing-progress" role="status" aria-live="polite"></p>
+			<div id="odsc-hearing-missing"></div>
+			<?php if ( ODSC_Hearing::has_definitions() ) : ?>
+				<?php foreach ( $definition['groups'] as $group ) : ?>
+					<section data-hearing-group="<?php echo esc_attr( $group['id'] ); ?>" <?php echo in_array( $group['id'], array( 'C', 'D' ), true ) ? 'hidden' : ''; ?>>
+						<h3><?php echo esc_html( $group['label'] ); ?></h3>
+						<?php foreach ( $definition['questions'] as $question ) : ?>
+							<?php
+							if ( $question['group'] !== $group['id'] ) {
+								continue; }
+							?>
+							<fieldset id="odsc-<?php echo esc_attr( $question['id'] ); ?>" tabindex="-1" class="odsc-question" <?php echo null !== $question['condition'] ? 'hidden disabled' : ''; ?>>
+								<legend><strong><?php echo esc_html( $question['id'] . ' ' . $question['question'] ); ?></strong></legend>
+								<?php foreach ( $question['options'] as $code => $label ) : ?>
+									<label class="odsc-answer"><input type="radio" name="hearing[<?php echo esc_attr( $question['id'] ); ?>]" value="<?php echo esc_attr( $code ); ?>" autocomplete="off"> <?php echo esc_html( $label ); ?></label>
+								<?php endforeach; ?>
+							</fieldset>
+						<?php endforeach; ?>
+					</section>
+				<?php endforeach; ?>
+			<?php else : ?>
+				<p role="alert"><?php esc_html_e( '質問定義を読み込めません。JSONは出力できません。', 'od-site-check' ); ?></p>
+			<?php endif; ?>
+			<p><a id="odsc-restart" href="<?php echo esc_url( admin_url( 'tools.php?page=od-site-check' ) ); ?>"><?php esc_html_e( '回答を破棄して診断をやり直す', 'od-site-check' ); ?></a></p>
 		</div>
 		<?php
 	}
