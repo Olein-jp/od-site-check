@@ -131,3 +131,7 @@ git push origin v0.3.0
 `WP-07`・`WP-08` の `auto_update_enabled` と `WP-04` の `installed_themes` 内の同名フィールドは、保存された自動更新設定です。テーマ一覧には非使用テーマ・親テーマも含み、`parent_stylesheet` で親を識別します。フィルターによる上書きや更新の実行・成功は保証しません。MUプラグイン・ドロップインはこの判定の対象外です。
 
 `WP-11` は人数集計に加え、`list_users` 権限がある場合に `users`（`user_login` と `roles` のみ）を出力します。権限がない場合は `users: null`、`users_error_code: list_users_forbidden`、取得状態は `partial` です。ダウンロード時にも一覧の閲覧権限を再確認します。
+
+### 定型ヒアリング統合の検証
+
+[22ケースの検証記録と再現手順](docs/hearing-acceptance.md)を参照してください。開発側のテストと利用者による正式な受入は分けて記録しています。JavaScriptの状態・出力処理は `npm run test:js` で確認できます。

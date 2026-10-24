@@ -163,6 +163,161 @@ class ExportTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * 旧版実コードから取得した固定22項目を統合しても内容が変わらない。
+	 *
+	 * @return void
+	 */
+	public function test_legacy_fixture_results_are_preserved() {
+		$payload = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'tests/fixtures/diagnostic-0.3.0.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 旧版の固定fixture。
+		$this->assertSame( '1.2', $payload['schema_version'] );
+		$results                   = $payload['results'];
+		$payload['schema_version'] = ODSC_SCHEMA_VERSION;
+		$this->request( ( new ODSC_Exporter() )->encode( $payload ), 'prepare' );
+		$prepared = json_decode( $this->capture( 'prepare' ), true );
+		$this->assertSame( $results, json_decode( $prepared['json'], true )['results'] );
+		$this->assertCount( 22, $results );
+	}
+
+	/**
+	 * 部分取得・個別失敗やマルチサイトの未対応でも全体は出力可能。
+	 *
+	 * @return void
+	 */
+	public function test_individual_failures_and_multisite_allow_completed_output() {
+		$schema = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱Schema。
+		foreach ( array( false, true ) as $multisite ) {
+			$filter = $multisite ? '__return_true' : '__return_false';
+			add_filter( 'odsc_is_multisite', $filter );
+			$payload = ( new ODSC_Collector() )->collect();
+			remove_filter( 'odsc_is_multisite', $filter );
+			if ( ! $multisite ) {
+				$payload['results'][0] = ODSC_Sanitizer::result( 'WP-01', 'error', null, null, 'テスト用の取得失敗', 'collector_failed' );
+				$payload['results'][2] = ODSC_Sanitizer::result( 'WP-03', 'unavailable', null, null, 'テスト用の取得不能', 'missing_api' );
+			}
+			$before = json_decode( wp_json_encode( $payload['results'] ), true );
+			$this->request( ( new ODSC_Exporter() )->encode( $payload ), 'prepare' );
+			$prepared = json_decode( $this->capture( 'prepare' ), true );
+			$complete = json_decode( $prepared['json'] );
+			$this->assertTrue( ( new Opis\JsonSchema\Validator() )->validate( $complete, $schema )->isValid() );
+			$this->assertSame( $before, json_decode( $prepared['json'], true )['results'] );
+		}
+	}
+
+	/**
+	 * 完成後に回答が変わったリクエストには以前のスナップショットを返さない。
+	 *
+	 * @return void
+	 */
+	public function test_cached_snapshot_with_changed_answers_is_rejected() {
+		$payload            = ( new ODSC_Collector() )->collect();
+		$payload['hearing'] = ODSC_Hearing::create( ODSC_Test_Hearing::answers( 'yes' ) );
+		$this->request( ( new ODSC_Exporter() )->encode( $payload ), 'prepare' );
+		$this->expectException( WPDieException::class );
+		$this->expectExceptionCode( 400 );
+		ODSC_Admin::get_instance()->handle_prepare();
+	}
+
+	/**
+	 * 管理権限なしでは準備を直接呼んでも出力できない。
+	 *
+	 * @return void
+	 */
+	public function test_prepare_requires_administrator_permission() {
+		$this->request( ( new ODSC_Exporter() )->encode( ( new ODSC_Collector() )->collect() ), 'prepare' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+		$this->expectException( WPDieException::class );
+		$this->expectExceptionCode( 403 );
+		ODSC_Admin::get_instance()->handle_prepare();
+	}
+
+	/**
+	 * 失敗・取り消し時に同じインスタンスの旧診断を残さない。
+	 *
+	 * @return void
+	 */
+	public function test_failed_or_cancelled_run_invalidates_previous_result() {
+		$admin    = ODSC_Admin::get_instance();
+		$property = new ReflectionProperty( ODSC_Admin::class, 'result' );
+		$property->setAccessible( true );
+		$old_method = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) );
+		try {
+			foreach ( array( 'invalid_nonce', 'no_consent', 'collection_failure' ) as $scenario ) {
+				$property->setValue( $admin, ( new ODSC_Collector() )->collect() );
+				$nonce                     = 'invalid_nonce' === $scenario ? 'invalid' : wp_create_nonce( 'odsc_run_diagnostic' );
+				$_SERVER['REQUEST_METHOD'] = 'POST';
+				$_POST                     = array(
+					'odsc_action'  => 'run',
+					'odsc_consent' => 'collection_failure' === $scenario ? '1' : '0',
+					'_odsc_nonce'  => $nonce,
+				);
+				$_REQUEST                  = array( '_odsc_nonce' => $nonce );
+				$failure                   = static function () {
+					throw new RuntimeException( 'テスト用の診断全体失敗' );
+				};
+				if ( 'collection_failure' === $scenario ) {
+					add_filter( 'odsc_collectors', $failure );
+				}
+				try {
+					$admin->handle_run_request();
+				} catch ( WPDieException $exception ) {
+					$this->assertSame( 'invalid_nonce', $scenario );
+				} finally {
+					remove_filter( 'odsc_collectors', $failure );
+				}
+				$this->assertNull( $property->getValue( $admin ) );
+			}
+		} finally {
+			$_SERVER['REQUEST_METHOD'] = $old_method;
+			$property->setValue( $admin, null );
+		}
+	}
+
+	/**
+	 * 準備処理がDB書き込みや外部HTTPを実行しない。
+	 *
+	 * @return void
+	 */
+	public function test_prepare_does_not_persist_or_send_data() {
+		$this->request( ( new ODSC_Exporter() )->encode( ( new ODSC_Collector() )->collect() ), 'prepare' );
+		$writes       = array();
+		$requests     = 0;
+		$query_filter = static function ( $query ) use ( &$writes ) {
+			if ( preg_match( '/^\s*(INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP)\b/i', $query ) ) {
+				$writes[] = $query;
+			}
+			return $query;
+		};
+		$http_filter  = static function () use ( &$requests ) {
+			++$requests;
+			return new WP_Error( 'blocked', 'テスト中は外部通信を許可しない。' );
+		};
+		add_filter( 'query', $query_filter );
+		add_filter( 'pre_http_request', $http_filter );
+		try {
+			$this->capture( 'prepare' );
+		} finally {
+			remove_filter( 'query', $query_filter );
+			remove_filter( 'pre_http_request', $http_filter );
+		}
+		$this->assertSame( array(), $writes );
+		$this->assertSame( 0, $requests );
+	}
+
+	/**
+	 * 新しい回答の3分岐をサーバーがそのまま確定する。
+	 *
+	 * @return void
+	 */
+	public function test_prepare_uses_current_explicit_answers() {
+		$json = ( new ODSC_Exporter() )->encode( ( new ODSC_Collector() )->collect() );
+		foreach ( array( 'no', 'unknown', 'yes' ) as $backup ) {
+			$this->request( $json, 'prepare', $backup );
+			$prepared = json_decode( $this->capture( 'prepare' ), true );
+			$this->assertSame( ODSC_Test_Hearing::answers( $backup ), json_decode( $prepared['json'], true )['hearing']['answers'] );
+		}
+	}
+
+	/**
 	 * ハンドラを実行し、テスト用終了を捕捉する。
 	 *
 	 * @param string $action 処理名.
@@ -189,9 +344,10 @@ class ExportTest extends WP_UnitTestCase {
 	 *
 	 * @param string $json JSON文字列.
 	 * @param string $action 処理名.
+	 * @param string $backup H-05の回答.
 	 * @return void
 	 */
-	private function request( $json, $action ) {
+	private function request( $json, $action, $backup = 'no' ) {
 		$exporter    = new ODSC_Exporter();
 		$nonce_field = '_odsc_' . $action . '_nonce';
 		$_POST       = array(
@@ -200,7 +356,7 @@ class ExportTest extends WP_UnitTestCase {
 			$nonce_field     => wp_create_nonce( 'odsc_' . $action . '_result' ),
 		); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- 署名済みフォームの転送形式。
 		$rows        = array();
-		foreach ( ODSC_Test_Hearing::answers() as $id => $answer ) {
+		foreach ( ODSC_Test_Hearing::answers( $backup ) as $id => $answer ) {
 			$rows[] = array( $id, $answer['status'], $answer['answer'] );
 		}
 		$_POST['odsc_answers'] = wp_slash( wp_json_encode( $rows ) );

@@ -159,4 +159,22 @@ class HearingTest extends WP_UnitTestCase {
 			}
 		}
 	}
+	/**
+	 * 各設問の全選択肢コードが配布Schemaと一致する。
+	 *
+	 * @return void
+	 */
+	public function test_every_defined_code_is_accepted_by_the_schema() {
+		$schema  = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱Schema。
+		$payload = ( new ODSC_Collector() )->collect();
+		foreach ( ODSC_Hearing::definition()['questions'] as $question ) {
+			foreach ( array_keys( $question['options'] ) as $code ) {
+				$answers                              = ODSC_Test_Hearing::answers( 'H-05' === $question['id'] ? $code : 'yes' );
+				$answers[ $question['id'] ]['answer'] = $code;
+				$this->assertTrue( ODSC_Hearing::is_valid_answers( $answers ) );
+				$payload['hearing'] = ODSC_Hearing::create( $answers );
+				$this->assertTrue( ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema )->isValid(), $question['id'] . ':' . $code );
+			}
+		}
+	}
 }
