@@ -21,6 +21,7 @@ tests_add_filter(
 		require dirname( __DIR__ ) . '/od-site-check.php';
 		require __DIR__ . '/support/class-odsc-test-download-completed.php';
 		require __DIR__ . '/support/class-odsc-test-exporter.php';
+		require __DIR__ . '/support/class-odsc-test-hearing.php';
 	}
 );
 

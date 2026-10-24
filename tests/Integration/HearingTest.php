@@ -1,0 +1,132 @@
+<?php
+/**
+ * 定型ヒアリングの完成契約。
+ *
+ * @package ODSiteCheck
+ */
+
+use Opis\JsonSchema\Validator;
+
+/**
+ * PHPとJSON Schemaが同じ分岐・許可コードを検証する。
+ */
+class HearingTest extends WP_UnitTestCase {
+	/**
+	 * 完成JSONと内部診断を区別し、3つの分岐を検証する。
+	 *
+	 * @return void
+	 */
+	public function test_complete_contract_and_branches() {
+		$schema   = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱Schema。
+		$exporter = new ODSC_Exporter();
+		$payload  = ( new ODSC_Collector() )->collect();
+		$original = $payload['results'];
+		$this->assertTrue( ODSC_Hearing::has_definitions() );
+		$this->assertFalse( $exporter->is_valid_payload( $payload ) );
+		$this->assertFalse( ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema )->isValid() );
+		foreach ( array( 'no', 'unknown', 'yes' ) as $backup ) {
+			$answers            = ODSC_Test_Hearing::answers( $backup );
+			$payload['hearing'] = ODSC_Hearing::create( $answers );
+			$this->assertTrue( $exporter->is_valid_payload( $payload ) );
+			$this->assertTrue( ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema )->isValid() );
+			$this->assertSame( $original, $payload['results'] );
+			$this->assertCount( 20, $answers );
+			$this->assertSame(
+				'yes' === $backup ? 20 : 13,
+				count(
+					array_filter(
+						$answers,
+						static function ( $answer ) {
+							return 'answered' === $answer['status'];
+						}
+					)
+				)
+			);
+		}
+	}
+
+	/**
+	 * 不正値をPHPとSchemaの両方で拒否する。
+	 *
+	 * @return void
+	 */
+	public function test_invalid_answers_are_rejected() {
+		$schema  = json_decode( file_get_contents( ODSC_PLUGIN_DIR . 'schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- 同梱Schema。
+		$payload = ( new ODSC_Collector() )->collect();
+		$valid   = ODSC_Test_Hearing::answers();
+		$cases   = array();
+		$case    = $valid;
+		unset( $case['H-01'] );
+		$cases[]      = $case;
+		$case         = $valid;
+		$case['H-21'] = $case['H-01'];
+		$cases[]      = $case;
+		foreach ( array( null, 'invalid', 1, array(), '<script>' ) as $value ) {
+			$case                   = $valid;
+			$case['H-01']['answer'] = $value;
+			$cases[]                = $case;
+		}
+		$case                   = $valid;
+		$case['H-01']['status'] = 'not_applicable';
+		$cases[]                = $case;
+		$case                   = $valid;
+		$case['H-06']           = array(
+			'status' => 'answered',
+			'answer' => 'unknown',
+		);
+		$cases[]                = $case;
+		$case                   = $valid;
+		$case['H-05']['answer'] = 'yes';
+		$cases[]                = $case;
+		$case                   = $valid;
+		$case['H-01']['extra']  = 'unknown';
+		$cases[]                = $case;
+		foreach ( $cases as $answers ) {
+			$this->assertFalse( ODSC_Hearing::is_valid_answers( $answers ) );
+			$payload['hearing'] = array(
+				'schema_version' => '1.0',
+				'completed_at'   => '2026-10-24T09:30:00+09:00',
+				'answers'        => $answers,
+			);
+			$this->assertFalse( ( new ODSC_Exporter() )->is_valid_payload( $payload ) );
+			$this->assertFalse( ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema )->isValid() );
+		}
+	}
+
+	/**
+	 * 配列形式で重複IDとキーの曖昧な補完を防ぐ。
+	 *
+	 * @return void
+	 */
+	public function test_transport_rejects_duplicates_and_malformed_rows() {
+		$answers = ODSC_Test_Hearing::answers();
+		$rows    = array();
+		foreach ( $answers as $id => $answer ) {
+			$rows[] = array( $id, $answer['status'], $answer['answer'] );
+		}
+		$this->assertSame( $answers, ODSC_Hearing::answers_from_rows( $rows ) );
+		$duplicate    = $rows;
+		$duplicate[1] = $duplicate[0];
+		$this->assertFalse( ODSC_Hearing::answers_from_rows( $duplicate ) );
+		$rows[0]['extra'] = 'value';
+		$this->assertFalse( ODSC_Hearing::answers_from_rows( $rows ) );
+		$this->assertFalse( ODSC_Hearing::answers_from_rows( null ) );
+	}
+
+	/**
+	 * 版と確定日時を曖昧に受理しない。
+	 *
+	 * @return void
+	 */
+	public function test_hearing_metadata_is_strict() {
+		$hearing = ODSC_Hearing::create( ODSC_Test_Hearing::answers() );
+		$this->assertTrue( ODSC_Hearing::is_valid( $hearing ) );
+		foreach ( array( '2026-02-30T09:30:00+09:00', '2026-10-24', '', null ) as $date ) {
+			$case                 = $hearing;
+			$case['completed_at'] = $date;
+			$this->assertFalse( ODSC_Hearing::is_valid( $case ) );
+		}
+		$hearing['schema_version'] = '0.9';
+		$this->assertFalse( ODSC_Hearing::is_valid( $hearing ) );
+	}
+}

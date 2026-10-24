@@ -1,0 +1,306 @@
+{
+  "schema_version": "1.0",
+  "groups": [
+    {
+      "id": "A",
+      "label": "A. サーバー・ドメイン契約管理（OPS-01）"
+    },
+    {
+      "id": "B",
+      "label": "B. バックアップ実施・対象（OPS-10）"
+    },
+    {
+      "id": "C",
+      "label": "C. バックアップ方法・保管先・頻度（OPS-10、OPS-12）"
+    },
+    {
+      "id": "D",
+      "label": "D. バックアップ取得履歴・復元確認（OPS-14）"
+    },
+    {
+      "id": "E",
+      "label": "E. WordPress更新・保守運用（OPS-18）"
+    },
+    {
+      "id": "F",
+      "label": "F. 障害対応・監視体制（OPS-19）"
+    },
+    {
+      "id": "G",
+      "label": "G. 管理者アカウント・ログイン保護（WP-11、WP-12の補助）"
+    }
+  ],
+  "questions": [
+    {
+      "id": "H-01",
+      "group": "A",
+      "question": "現在利用しているサーバーの契約・支払いは、主にどなたが管理していますか？",
+      "condition": null,
+      "options": {
+        "self": "自社・自身で管理している",
+        "external": "制作会社・保守会社などの外部事業者",
+        "other": "その他",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-02",
+      "group": "A",
+      "question": "サイトのドメイン（例：example.com）の契約・更新は、主にどなたが管理していますか？",
+      "condition": null,
+      "options": {
+        "self": "自社・自身で管理している",
+        "external": "制作会社・保守会社などの外部事業者",
+        "other": "その他",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-03",
+      "group": "A",
+      "question": "サーバーの契約更新や支払い状況を定期的に確認していますか？",
+      "condition": null,
+      "options": {
+        "yes": "確認している",
+        "no": "確認していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-04",
+      "group": "A",
+      "question": "ドメインの有効期限や契約更新状況を定期的に確認していますか？",
+      "condition": null,
+      "options": {
+        "yes": "確認している",
+        "no": "確認していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-05",
+      "group": "B",
+      "question": "現在、このWordPressサイトのバックアップを取得していますか？",
+      "condition": null,
+      "options": {
+        "yes": "取得している",
+        "no": "取得していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-06",
+      "group": "B",
+      "question": "バックアップには、画像・テーマ・プラグインなどのファイルが含まれていますか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "yes": "含まれている",
+        "no": "含まれていない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-07",
+      "group": "B",
+      "question": "バックアップには、投稿・固定ページ・各種設定などが保存されたデータベースが含まれていますか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "yes": "含まれている",
+        "no": "含まれていない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-08",
+      "group": "C",
+      "question": "バックアップは主にどのような方法で取得していますか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "server": "レンタルサーバーなどのバックアップ機能",
+        "plugin": "WordPressプラグイン",
+        "manual": "手動によるバックアップ",
+        "external_service": "外部のバックアップサービス",
+        "multiple": "複数の方法を併用している",
+        "other": "その他",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-09",
+      "group": "C",
+      "question": "バックアップデータは主にどこに保管していますか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "same_server": "Webサイトと同じサーバー内",
+        "different_location": "別のサーバーやクラウドストレージ",
+        "local_device": "パソコンや外付けストレージ",
+        "multiple": "複数の場所に保管している",
+        "other": "その他",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-10",
+      "group": "C",
+      "question": "バックアップはどの程度の頻度で取得していますか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "daily_or_more": "毎日、またはそれ以上の頻度",
+        "weekly": "週に1回程度",
+        "monthly": "月に1回程度",
+        "less_than_monthly": "月に1回未満",
+        "irregular": "不定期",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-11",
+      "group": "D",
+      "question": "最後にバックアップが正常に取得されていることを確認したのはいつですか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "within_7_days": "過去7日以内",
+        "within_30_days": "8〜30日前",
+        "over_30_days": "31日以上前",
+        "never": "一度も確認したことがない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-12",
+      "group": "D",
+      "question": "バックアップデータを使い、実際にWebサイトを復元するテストを実施したことがありますか？",
+      "condition": {
+        "id": "H-05",
+        "answer": "yes"
+      },
+      "options": {
+        "within_12_months": "過去12か月以内に実施した",
+        "over_12_months": "12か月より前に実施した",
+        "never": "一度も実施していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-13",
+      "group": "E",
+      "question": "WordPress本体・テーマ・プラグインの更新作業は、主にどなたが担当していますか？",
+      "condition": null,
+      "options": {
+        "self": "自社・自身",
+        "external": "制作会社・保守会社などの外部事業者",
+        "shared": "自社と外部事業者の両方",
+        "nobody": "特に担当者を決めていない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-14",
+      "group": "E",
+      "question": "WordPress本体・テーマ・プラグインに更新があるか、どの程度の頻度で確認していますか？",
+      "condition": null,
+      "options": {
+        "weekly_or_more": "週に1回以上",
+        "monthly": "月に1回程度",
+        "less_than_monthly": "月に1回未満",
+        "irregular": "不定期",
+        "never": "確認していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-15",
+      "group": "E",
+      "question": "WordPressの更新作業を行う前に、バックアップが取得できているか確認していますか？",
+      "condition": null,
+      "options": {
+        "always": "毎回確認している",
+        "sometimes": "場合によって確認している",
+        "never": "確認していない",
+        "no_updates": "更新作業を実施していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-16",
+      "group": "E",
+      "question": "WordPressの更新作業を行った後、サイトの表示やお問い合わせフォームなどが正常に動作しているか確認していますか？",
+      "condition": null,
+      "options": {
+        "always": "毎回確認している",
+        "sometimes": "場合によって確認している",
+        "never": "確認していない",
+        "no_updates": "更新作業を実施していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-17",
+      "group": "F",
+      "question": "サイトが表示されない、正常に動作しないなどの問題が発生した際に、対応する担当者や相談先は決まっていますか？",
+      "condition": null,
+      "options": {
+        "internal": "自社内に担当者がいる",
+        "external": "外部の制作会社・保守会社などに相談できる",
+        "both": "自社と外部事業者の両方で対応する",
+        "none": "特に決まっていない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-18",
+      "group": "F",
+      "question": "サイトが正常に稼働しているか、定期的に確認していますか？",
+      "condition": null,
+      "options": {
+        "automated": "監視サービスなどで自動確認している",
+        "manual": "担当者が手動で定期的に確認している",
+        "both": "自動・手動の両方で確認している",
+        "none": "定期的な確認はしていない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-19",
+      "group": "G",
+      "question": "WordPressの管理者権限を持つアカウントについて、誰が何のために利用しているか把握していますか？",
+      "condition": null,
+      "options": {
+        "all": "すべて把握している",
+        "some": "一部のみ把握している",
+        "none": "把握していない",
+        "unknown": "わからない"
+      }
+    },
+    {
+      "id": "H-20",
+      "group": "G",
+      "question": "WordPress管理画面へのログインで、二要素認証（パスワードに加え、認証アプリなどで本人確認する仕組み）を利用していますか？",
+      "condition": null,
+      "options": {
+        "all_admins": "すべての管理者が利用している",
+        "some_admins": "一部の管理者が利用している",
+        "none": "利用していない",
+        "unknown": "わからない"
+      }
+    }
+  ]
+}

@@ -175,11 +175,12 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_payload_matches_json_schema() {
-		$payload   = ( new ODSC_Collector() )->collect();
-		$schema    = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
-		$data      = json_decode( wp_json_encode( $payload ) );
-		$validator = new Validator();
-		$result    = $validator->validate( $data, $schema );
+		$payload          = ( new ODSC_Collector() )->collect();
+		$schema           = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+		$schema->{'$ref'} = '#/definitions/diagnosticSnapshot';
+		$data             = json_decode( wp_json_encode( $payload ) );
+		$validator        = new Validator();
+		$result           = $validator->validate( $data, $schema );
 
 		$this->assertTrue( $result->isValid() );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
@@ -254,12 +255,13 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$payload    = ( new ODSC_Collector() )->collect();
-		$items      = $payload['results'];
-		$ids        = wp_list_pluck( $items, 'id' );
-		$results    = array_combine( $ids, $items );
-		$schema     = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
-		$validation = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
+		$payload          = ( new ODSC_Collector() )->collect();
+		$items            = $payload['results'];
+		$ids              = wp_list_pluck( $items, 'id' );
+		$results          = array_combine( $ids, $items );
+		$schema           = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+		$schema->{'$ref'} = '#/definitions/diagnosticSnapshot';
+		$validation       = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
 
 		$this->assertSame( 'error', $results['WP-01']['status'] );
 		$this->assertNull( $results['WP-01']['value'] );
@@ -277,9 +279,10 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_schema_rejects_invalid_status_field_combinations() {
-		$payload = ( new ODSC_Collector() )->collect();
-		$schema  = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
-		$ids     = wp_list_pluck( $payload['results'], 'id' );
+		$payload          = ( new ODSC_Collector() )->collect();
+		$schema           = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+		$schema->{'$ref'} = '#/definitions/diagnosticSnapshot';
+		$ids              = wp_list_pluck( $payload['results'], 'id' );
 
 		$invalid_cases = array(
 			array(
@@ -355,10 +358,11 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 		delete_site_transient( 'update_plugins' );
 
 		try {
-			$payload = ( new ODSC_Collector() )->collect();
-			$results = array_combine( wp_list_pluck( $payload['results'], 'id' ), $payload['results'] );
-			$schema  = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
-			$valid   = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
+			$payload          = ( new ODSC_Collector() )->collect();
+			$results          = array_combine( wp_list_pluck( $payload['results'], 'id' ), $payload['results'] );
+			$schema           = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+			$schema->{'$ref'} = '#/definitions/diagnosticSnapshot';
+			$valid            = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
 
 			$this->assertSame( 'partial', $results['WP-04']['status'] );
 			$this->assertFalse( $results['WP-04']['value']['update_cache_available'] );
@@ -456,9 +460,10 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 			$this->assertFalse( $inactive_plugins[ $plugin_file ]['update_available'] );
 			$this->assertNull( $inactive_plugins[ $plugin_file ]['new_version'] );
 
-			$payload = ( new ODSC_Collector() )->collect();
-			$schema  = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
-			$valid   = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
+			$payload          = ( new ODSC_Collector() )->collect();
+			$schema           = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local test fixture.
+			$schema->{'$ref'} = '#/definitions/diagnosticSnapshot';
+			$valid            = ( new Validator() )->validate( json_decode( wp_json_encode( $payload ) ), $schema );
 
 			$this->assertTrue( $valid->isValid() );
 
@@ -721,8 +726,9 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 						);
 						$this->assertSame( $case[1][0], $plugin['new_version'] );
 					}
-					$schema = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- ローカルのSchemaを読む。
-					$valid  = ( new Validator() )->validate( json_decode( wp_json_encode( ( new ODSC_Collector() )->collect() ) ), $schema );
+					$schema           = json_decode( file_get_contents( dirname( __DIR__, 2 ) . '/schemas/diagnostic-result.schema.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- ローカルのSchemaを読む。
+					$schema->{'$ref'} = '#/definitions/diagnosticSnapshot';
+					$valid            = ( new Validator() )->validate( json_decode( wp_json_encode( ( new ODSC_Collector() )->collect() ) ), $schema );
 					$this->assertTrue( $valid->isValid() );
 				}
 			}
@@ -1217,8 +1223,10 @@ final class ODSC_Diagnostic_Test extends WP_UnitTestCase {
 	 * @return string Encoded JSON body.
 	 */
 	private function set_download_request( $nonce, $exporter = null ) {
-		$exporter = $exporter ? $exporter : new ODSC_Exporter();
-		$json     = $exporter->encode( ( new ODSC_Collector() )->collect() );
+		$exporter           = $exporter ? $exporter : new ODSC_Exporter();
+		$payload            = ( new ODSC_Collector() )->collect();
+		$payload['hearing'] = ODSC_Hearing::create( ODSC_Test_Hearing::answers() );
+		$json               = $exporter->encode( $payload );
 
 		$_POST    = array(
 			'odsc_payload'         => base64_encode( $json ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Mirrors the signed form transport.

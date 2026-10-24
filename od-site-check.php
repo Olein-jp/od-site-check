@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'ODSC_VERSION', '0.3.0' );
-define( 'ODSC_SCHEMA_VERSION', '1.2' );
+define( 'ODSC_SCHEMA_VERSION', '1.3' );
 define( 'ODSC_MINIMUM_WP_VERSION', '7.1' );
 define( 'ODSC_MINIMUM_PHP_VERSION', '7.4' );
 define( 'ODSC_PLUGIN_FILE', __FILE__ );
@@ -61,6 +61,7 @@ require_once ODSC_PLUGIN_DIR . 'includes/collectors/class-users.php';
 require_once ODSC_PLUGIN_DIR . 'includes/collectors/class-settings.php';
 require_once ODSC_PLUGIN_DIR . 'includes/collectors/class-environment.php';
 require_once ODSC_PLUGIN_DIR . 'includes/class-collector.php';
+require_once ODSC_PLUGIN_DIR . 'includes/class-hearing.php';
 require_once ODSC_PLUGIN_DIR . 'includes/class-exporter.php';
 require_once ODSC_PLUGIN_DIR . 'includes/class-admin.php';
 

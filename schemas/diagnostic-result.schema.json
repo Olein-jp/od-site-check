@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.2.json",
+  "$id": "https://olein-design.com/schemas/od-site-check/diagnostic-result-1.3.json",
   "title": "OD Site Check diagnostic result",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "collector", "collected_at", "site", "results"],
+  "required": ["schema_version", "collector", "collected_at", "site", "results", "hearing"],
   "properties": {
-    "schema_version": { "const": "1.2" },
+    "schema_version": { "const": "1.3" },
     "collector": {
       "type": "object",
       "additionalProperties": false,
@@ -26,6 +26,764 @@
         "multisite": { "type": "boolean" }
       }
     },
+    "hearing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "completed_at",
+        "answers"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "answers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "H-01",
+            "H-02",
+            "H-03",
+            "H-04",
+            "H-05",
+            "H-06",
+            "H-07",
+            "H-08",
+            "H-09",
+            "H-10",
+            "H-11",
+            "H-12",
+            "H-13",
+            "H-14",
+            "H-15",
+            "H-16",
+            "H-17",
+            "H-18",
+            "H-19",
+            "H-20"
+          ],
+          "properties": {
+            "H-01": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "self",
+                    "external",
+                    "other",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-02": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "self",
+                    "external",
+                    "other",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-03": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "yes",
+                    "no",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-04": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "yes",
+                    "no",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-05": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "yes",
+                    "no",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-06": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "yes",
+                        "no",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-07": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "yes",
+                        "no",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-08": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "server",
+                        "plugin",
+                        "manual",
+                        "external_service",
+                        "multiple",
+                        "other",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-09": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "same_server",
+                        "different_location",
+                        "local_device",
+                        "multiple",
+                        "other",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-10": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "daily_or_more",
+                        "weekly",
+                        "monthly",
+                        "less_than_monthly",
+                        "irregular",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-11": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "within_7_days",
+                        "within_30_days",
+                        "over_30_days",
+                        "never",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-12": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "answered"
+                    },
+                    "answer": {
+                      "enum": [
+                        "within_12_months",
+                        "over_12_months",
+                        "never",
+                        "unknown"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "answer"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    },
+                    "answer": {
+                      "type": "null"
+                    }
+                  }
+                }
+              ]
+            },
+            "H-13": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "self",
+                    "external",
+                    "shared",
+                    "nobody",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-14": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "weekly_or_more",
+                    "monthly",
+                    "less_than_monthly",
+                    "irregular",
+                    "never",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-15": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "always",
+                    "sometimes",
+                    "never",
+                    "no_updates",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-16": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "always",
+                    "sometimes",
+                    "never",
+                    "no_updates",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-17": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "internal",
+                    "external",
+                    "both",
+                    "none",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-18": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "automated",
+                    "manual",
+                    "both",
+                    "none",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-19": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "all",
+                    "some",
+                    "none",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "H-20": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "answer"
+              ],
+              "properties": {
+                "status": {
+                  "const": "answered"
+                },
+                "answer": {
+                  "enum": [
+                    "all_admins",
+                    "some_admins",
+                    "none",
+                    "unknown"
+                  ]
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "H-05": {
+                    "properties": {
+                      "answer": {
+                        "const": "yes"
+                      }
+                    }
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "H-06": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  },
+                  "H-07": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  },
+                  "H-08": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  },
+                  "H-09": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  },
+                  "H-10": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  },
+                  "H-11": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  },
+                  "H-12": {
+                    "properties": {
+                      "status": {
+                        "const": "answered"
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "H-06": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "H-07": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "H-08": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "H-09": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "H-10": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "H-11": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "H-12": {
+                    "properties": {
+                      "status": {
+                        "const": "not_applicable"
+                      },
+                      "answer": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "results": {
       "type": "array",
       "minItems": 22,
@@ -34,6 +792,35 @@
     }
   },
   "definitions": {
+    "diagnosticSnapshot": {
+      "description": "サーバーが収集・署名する内部診断。完成した出力にはhearingが別途必須。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "collector",
+        "collected_at",
+        "site",
+        "results"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "#/properties/schema_version"
+        },
+        "collector": {
+          "$ref": "#/properties/collector"
+        },
+        "collected_at": {
+          "$ref": "#/properties/collected_at"
+        },
+        "site": {
+          "$ref": "#/properties/site"
+        },
+        "results": {
+          "$ref": "#/properties/results"
+        }
+      }
+    },
     "nullableString": {
       "type": ["string", "null"]
     },

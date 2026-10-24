@@ -57,7 +57,7 @@ class ODSC_Exporter {
 	 * @param array<string, mixed> $payload Diagnostic payload.
 	 * @return bool
 	 */
-	public function is_valid_payload( $payload ) {
+	public function is_valid_diagnostic( $payload ) {
 		if (
 			! isset( $payload['schema_version'], $payload['collector'], $payload['collected_at'], $payload['site'], $payload['results'] ) ||
 			ODSC_SCHEMA_VERSION !== $payload['schema_version'] ||
@@ -76,6 +76,16 @@ class ODSC_Exporter {
 		}
 
 		return ODSC_Collector::expected_ids() === $ids;
+	}
+
+	/**
+	 * 完成した統合出力を検証する。診断のみの旧経路では出力させない。
+	 *
+	 * @param array $payload 統合出力.
+	 * @return bool
+	 */
+	public function is_valid_payload( $payload ) {
+		return $this->is_valid_diagnostic( $payload ) && isset( $payload['hearing'] ) && ODSC_Hearing::is_valid( $payload['hearing'] );
 	}
 
 	/**
