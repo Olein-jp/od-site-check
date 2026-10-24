@@ -37,7 +37,9 @@ class ODSC_Exporter {
 	 * @return string
 	 */
 	public function sign( $json ) {
-		return hash_hmac( 'sha256', $json, wp_salt( 'auth' ) );
+		// 他の利用者・セッション・サイトへ署名を持ち出して再利用させない.
+		$context = get_current_user_id() . '|' . wp_get_session_token() . '|' . get_current_blog_id() . '|' . home_url( '/' );
+		return hash_hmac( 'sha256', $context . '|' . $json, wp_salt( 'auth' ) );
 	}
 
 	/**
@@ -66,6 +68,19 @@ class ODSC_Exporter {
 			return false;
 		}
 
+		$keys = array_keys( $payload );
+		sort( $keys );
+		$expected = array( 'collected_at', 'collector', 'results', 'schema_version', 'site' );
+		if ( array_key_exists( 'hearing', $payload ) ) {
+			$expected[] = 'hearing';
+			sort( $expected );
+		}
+		if ( $keys !== $expected || ! is_array( $payload['collector'] ) || ! is_array( $payload['site'] ) ||
+			'OD Site Check' !== ( $payload['collector']['name'] ?? null ) || ! is_string( $payload['collector']['version'] ?? null ) ||
+			! is_string( $payload['collected_at'] ) || ! is_string( $payload['site']['url'] ?? null ) || ! is_bool( $payload['site']['multisite'] ?? null ) ) {
+			return false;
+		}
+
 		$ids = array();
 		foreach ( $payload['results'] as $result ) {
 			if ( ! is_array( $result ) || ! isset( $result['id'] ) || ! is_string( $result['id'] ) ) {
@@ -86,6 +101,19 @@ class ODSC_Exporter {
 	 */
 	public function is_valid_payload( $payload ) {
 		return $this->is_valid_diagnostic( $payload ) && isset( $payload['hearing'] ) && ODSC_Hearing::is_valid( $payload['hearing'] );
+	}
+
+	/**
+	 * 検証済み出力をブラウザへ返す。サーバーに保存しない。
+	 *
+	 * @param array $snapshot JSON文字列・署名・ファイル名.
+	 * @return void
+	 */
+	public function respond( $snapshot ) {
+		nocache_headers();
+		$this->send_download_headers( array( 'Content-Type: application/json; charset=utf-8', 'X-Content-Type-Options: nosniff' ) );
+		echo wp_json_encode( $snapshot ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 認証済みのJSON応答。
+		$this->terminate_download();
 	}
 
 	/**

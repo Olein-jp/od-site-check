@@ -63,6 +63,7 @@ final class ODSC_Admin {
 		add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_post_odsc_download', array( $this, 'handle_download' ) );
+		add_action( 'admin_post_odsc_prepare', array( $this, 'handle_prepare' ) );
 	}
 
 	/**
@@ -96,6 +97,7 @@ final class ODSC_Admin {
 		wp_enqueue_style( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.css', array(), ODSC_VERSION );
 		wp_enqueue_script( 'odsc-hearing', ODSC_PLUGIN_URL . 'assets/hearing.js', array(), ODSC_VERSION, true );
 		wp_enqueue_script( 'odsc-admin', ODSC_PLUGIN_URL . 'assets/admin.js', array( 'odsc-hearing' ), ODSC_VERSION, true );
+		wp_enqueue_script( 'odsc-export', ODSC_PLUGIN_URL . 'assets/export.js', array( 'odsc-admin' ), ODSC_VERSION, true );
 		wp_localize_script(
 			'odsc-admin',
 			'odscAdmin',
@@ -104,7 +106,7 @@ final class ODSC_Admin {
 				'checking'     => __( '確認しています…', 'od-site-check' ),
 				'checkingNote' => __( 'サイトの情報を確認しています。この画面を閉じずにお待ちください。', 'od-site-check' ),
 				'copied'       => __( 'JSONをコピーしました。', 'od-site-check' ),
-				'copyFailed'   => __( 'コピーできませんでした。JSON欄を選択してコピーしてください。', 'od-site-check' ),
+				'copyFailed'   => __( 'コピーできませんでした。回答と権限を確認し、再度お試しください。', 'od-site-check' ),
 			)
 		);
 	}
@@ -124,6 +126,8 @@ final class ODSC_Admin {
 			return;
 		}
 
+		$this->result = null;
+
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'この診断を実行する権限がありません。', 'od-site-check' ), '', array( 'response' => 403 ) );
 		}
@@ -136,7 +140,11 @@ final class ODSC_Admin {
 			return;
 		}
 
-		$this->result = ( new ODSC_Collector() )->collect();
+		try {
+			$this->result = ( new ODSC_Collector() )->collect();
+		} catch ( Throwable $exception ) {
+			$this->error = __( '診断に失敗しました。もう一度実行してください。', 'od-site-check' );
+		}
 	}
 
 	/**
@@ -149,29 +157,74 @@ final class ODSC_Admin {
 			wp_die( esc_html__( '診断結果をダウンロードする権限がありません。', 'od-site-check' ), '', array( 'response' => 403 ) );
 		}
 
-		check_admin_referer( 'odsc_download_result', '_odsc_download_nonce' );
+		$source = $this->read_export_request( true );
+		$this->get_exporter()->download( $source['json'] );
+	}
 
-		$encoded   = isset( $_POST['odsc_payload'] ) ? sanitize_text_field( wp_unslash( $_POST['odsc_payload'] ) ) : '';
-		$signature = isset( $_POST['odsc_signature'] ) ? sanitize_text_field( wp_unslash( $_POST['odsc_signature'] ) ) : '';
-		$json      = base64_decode( $encoded, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decodes a signed JSON transport value.
+	/**
+	 * 明示的な出力要求だけを受け、完成文字列を返す。
+	 *
+	 * @return void
+	 */
+	public function handle_prepare() {
+		$source    = $this->read_export_request( false );
+		$rows_json = isset( $_POST['odsc_answers'] ) && is_string( $_POST['odsc_answers'] ) ? wp_unslash( $_POST['odsc_answers'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- read_export_requestでnonce検証済み。配列形と固定コードを下で厳密に検証する。
+		$rows      = json_decode( $rows_json );
+		$answers   = ODSC_Hearing::answers_from_rows( $rows );
+		if ( false === $answers ) {
+			wp_die( esc_html__( 'ヒアリングの回答が完了していないか、形式が正しくありません。', 'od-site-check' ), '', array( 'response' => 400 ) );
+		}
+		$payload  = $source['payload'];
+		$exporter = $this->get_exporter();
+		if ( array_key_exists( 'hearing', $payload ) ) {
+			if ( ! $exporter->is_valid_payload( $payload ) || $answers !== $payload['hearing']['answers'] ) {
+				wp_die( esc_html__( '回答と出力内容が一致しません。', 'od-site-check' ), '', array( 'response' => 400 ) );
+			}
+			$json = $source['json'];
+		} else {
+			$payload['hearing'] = ODSC_Hearing::create( $answers );
+			$json               = $exporter->encode( $payload );
+		}
+		$exporter->respond(
+			array(
+				'json'      => $json,
+				'signature' => $exporter->sign( $json ),
+				'filename'  => $exporter->get_filename(),
+			)
+		);
+	}
+
+	/**
+	 * 準備・ダウンロードに共通のサーバー側防御。
+	 *
+	 * @param bool $complete 完成JSONを要求するか.
+	 * @return array
+	 */
+	private function read_export_request( $complete ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( '診断結果を出力する権限がありません。', 'od-site-check' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( $complete ? 'odsc_download_result' : 'odsc_prepare_result', $complete ? '_odsc_download_nonce' : '_odsc_prepare_nonce' );
+		$encoded   = isset( $_POST['odsc_payload'] ) && is_string( $_POST['odsc_payload'] ) ? sanitize_text_field( wp_unslash( $_POST['odsc_payload'] ) ) : '';
+		$signature = isset( $_POST['odsc_signature'] ) && is_string( $_POST['odsc_signature'] ) ? sanitize_text_field( wp_unslash( $_POST['odsc_signature'] ) ) : '';
+		$json      = base64_decode( $encoded, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- 署名済みJSONの転送形式。
 		$exporter  = $this->get_exporter();
-
 		if ( false === $json || ! $exporter->verify( $json, $signature ) ) {
 			wp_die( esc_html__( '診断結果を確認できませんでした。もう一度診断を実行してください。', 'od-site-check' ), '', array( 'response' => 400 ) );
 		}
-
 		$payload = json_decode( $json, true );
-		if ( ! is_array( $payload ) || ! $exporter->is_valid_payload( $payload ) ) {
+		if ( ! is_array( $payload ) || ! $exporter->is_valid_diagnostic( $payload ) || ( $complete && ! $exporter->is_valid_payload( $payload ) ) ) {
 			wp_die( esc_html__( '診断結果の形式が正しくありません。', 'od-site-check' ), '', array( 'response' => 400 ) );
 		}
-
 		foreach ( $payload['results'] as $result ) {
 			if ( 'WP-11' === $result['id'] && isset( $result['value']['users'] ) && ! current_user_can( 'list_users' ) ) {
-				wp_die( esc_html__( 'アカウント一覧をダウンロードする権限がありません。', 'od-site-check' ), '', array( 'response' => 403 ) );
+				wp_die( esc_html__( 'アカウント一覧を出力する権限がありません。', 'od-site-check' ), '', array( 'response' => 403 ) );
 			}
 		}
-
-		$exporter->download( $json );
+		return array(
+			'json'    => $json,
+			'payload' => $payload,
+		);
 	}
 
 	/**
@@ -355,6 +408,7 @@ final class ODSC_Admin {
 				<input type="hidden" name="odsc_payload" value="<?php echo esc_attr( base64_encode( $json ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Encodes signed JSON for form transport. ?>">
 				<input type="hidden" name="odsc_signature" value="<?php echo esc_attr( $exporter->sign( $json ) ); ?>">
 				<?php wp_nonce_field( 'odsc_download_result', '_odsc_download_nonce' ); ?>
+				<?php wp_nonce_field( 'odsc_prepare_result', '_odsc_prepare_nonce' ); ?>
 				<textarea id="odsc-json-preview" class="odsc-json-preview" rows="18" readonly aria-label="<?php esc_attr_e( '出力用JSON', 'od-site-check' ); ?>"></textarea>
 				<div class="odsc-export-actions">
 					<button type="button" id="odsc-copy-json" class="button button-secondary" disabled><?php esc_html_e( 'JSONをコピー', 'od-site-check' ); ?></button>
